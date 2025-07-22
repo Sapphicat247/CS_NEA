@@ -17,7 +17,8 @@ I will uer R to analyse the results to work out if changes improve the disign of
 ## Useful Sites
 
 - [Catan wiki](https://en.wikipedia.org/wiki/Catan)
-- [Gui library](https://github.com/hoffstadt/DearPyGui)
+- [Gui library github](https://github.com/hoffstadt/DearPyGui)
+- [Gui library documentation](https://dearpygui.readthedocs.io/en/latest/)
 
 ## Documentation
 
