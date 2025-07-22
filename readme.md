@@ -10,6 +10,8 @@ I will uer R to analyse the results to work out if changes improve the disign of
 
 - Python
   - dearpygui
+  - enum
+  - dataclass
 - R
 
 ## Useful Sites
@@ -26,11 +28,3 @@ I will uer R to analyse the results to work out if changes improve the disign of
 ### src
 
 - folder to hold scripts
-
-    #### catan.py
-
-    - holds objects to represent the game
-
-    #### ai.py
-
-    - where the ai is
