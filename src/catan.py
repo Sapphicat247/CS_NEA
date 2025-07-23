@@ -1,5 +1,5 @@
 from enum import Enum, Flag
-from dataclasses import dataclass, field, MISSING
+from dataclasses import dataclass, field
 import random
 from pprint import pprint
 
@@ -53,15 +53,15 @@ class Port:
 @dataclass
 class Vertex:
     structure: Structure = field(default_factory=Structure)
-    
-    edges: list[int | None] = field(default_factory = lambda: [None]*6) # N S | NE SW | NW SE
+    #                                                                     0   1   2   3   4   5
+    edges: list[int | None] = field(default_factory = lambda: [None]*6) # N   NE  SE  S   SW  NW
 
 @dataclass
 class Edge:
     structure: Structure = field(default_factory=Structure)
     port: Port | None = None
-    #                                                                     0   1   2   3   4   5
-    verts: list[int | None] = field(default_factory = lambda: [None]*6) # N   NE  SE  S   SW  NW
+    
+    verts: list[int] = field(default_factory = lambda: [-1]*2) # N S | NE SW | NW SE
 
 @dataclass
 class Hex:
@@ -272,8 +272,56 @@ class Board:
             "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.__edges) if edge.port != None]
         }
     
-    def valid_placement(self, building: Building, pos: int):
-        ...
+    def valid_placement(self, structure: Structure, pos: int, settlements_need_road: bool = True) -> bool:
+        match structure.type:
+            case Building.SETTLEMENT:
+                vert = self.__verts[pos]
+                
+                if vert.structure.owner != Colour.NONE: # building already exists there
+                    return False
+                
+                adj_edges = [self.__edges[i] for i in vert.edges if i != None]
+                for edge in adj_edges:
+                    adj_vert = self.__verts[[i for i in edge.verts if i != pos][0]] # always 2 without condition
+                    if adj_vert.structure.owner != Colour.NONE: # building exists 1 road away from target
+                        return False
+                
+                if settlements_need_road:
+                    for edge in adj_edges:
+                        if edge.structure == Structure(structure.owner, Building.ROAD): # road owned by this person
+                            return True
+                
+                else:
+                    return True
+                
+                return False
+            
+            case Building.CITY:
+                # upgrade to players own settlement
+                return self.__verts[pos] == Structure(structure.owner, Building.SETTLEMENT) # settlement owned by the same person
+            
+            case Building.ROAD:
+                road = self.__edges[pos]
+                # must be connected to players road or city / settlement. cant place through another player's settlement
+                if road.structure != Structure(): # not empty
+                    return False
+                
+                adj_verts = [self.__verts[i] for i in road.verts]
+                
+                for vert in adj_verts:
+                    if vert.structure == Structure(structure.owner, Building.SETTLEMENT) or vert.structure == Structure(structure.owner, Building.CITY): # city or settlement owner by this player adjacent to road target
+                        return True
+                    
+                    adj_edges = [self.__edges[i] for i in vert.edges if i != None]
+                    for edge in adj_edges:
+                        if edge.structure == Structure(structure.owner, Building.ROAD) and vert.structure.owner == Colour.NONE: # road owned by this person AND not interupted by settlement / city
+                            return True
+                
+                return False
+            
+            case _:
+                print(f"tried to place invalid building: {structure} at {pos}")
+                return False
 
 if __name__ == "__main__":
     temp = Board()

@@ -28,13 +28,13 @@ players: list[AI.AI] = [
 
 for i in (0, 1, 2, 3):
     print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing first settlement{colours.END}")
-    v, e =  players[i].place_first_settlement()
+    v, e =  players[i].place_first_settlement(board)
 
 print()
 
 for i in (3, 2, 1, 0):
     print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing second settlement{colours.END}")
-    v, e =  players[i].place_second_settlement()
+    v, e =  players[i].place_second_settlement(board)
 
 # MARK: main loop
 
@@ -45,7 +45,7 @@ while 1:
         print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
         
         # try to have turn
-        effect = players[current_turn].have_turn()
+        effect = players[current_turn].have_turn(board)
         
         if effect["end_turn"] == True:
             break
