@@ -1,0 +1,35 @@
+{
+    "ports": [
+        {"position": 42, "resource": "DESERT"},
+        {"position": 45, "resource": "WOOL"},
+        {"position": 49, "resource": "DESERT"},
+        {"position": 53, "resource": "ORE"},
+        {"position": 56, "resource": "GRAIN"},
+        {"position": 60, "resource": "BRICK"},
+        {"position": 63, "resource": "DESERT"},
+        {"position": 66, "resource": "WOOD"},
+        {"position": 69, "resource": "DESERT"}
+    ],
+
+    "resources": [
+        {"resource": "ORE", "value": 5},
+        {"resource": "WOOL", "value": 2},
+        {"resource": "WOOL", "value": 6},
+        {"resource": "WOOD", "value": 3},
+        {"resource": "ORE", "value": 8},
+        {"resource": "WOOD", "value": 10},
+        {"resource": "WOOD", "value": 9},
+        {"resource": "GRAIN", "value": 12},
+        {"resource": "BRICK", "value": 11},
+        {"resource": "DESERT", "value": 7},
+        {"resource": "WOOL", "value": 4},
+        {"resource": "GRAIN", "value": 8},
+        {"resource": "WOOL", "value": 10},
+        {"resource": "BRICK", "value": 9},
+        {"resource": "ORE", "value": 4},
+        {"resource": "GRAIN", "value": 5},
+        {"resource": "BRICK", "value": 6},
+        {"resource": "WOOD", "value": 3},
+        {"resource": "GRAIN", "value": 11}
+    ]
+}
