@@ -272,5 +272,6 @@ class Board:
             "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.__edges) if edge.port != None]
         }
 
-temp = Board()
-pprint(temp.encode())
+if __name__ == "__main__":
+    temp = Board()
+    pprint(temp.encode())
