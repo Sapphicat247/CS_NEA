@@ -271,6 +271,9 @@ class Board:
             "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.__hexes],
             "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.__edges) if edge.port != None]
         }
+    
+    def valid_placement(self, building: Building, pos: int):
+        ...
 
 if __name__ == "__main__":
     temp = Board()

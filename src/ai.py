@@ -9,5 +9,8 @@ class AI:
     def place_second_settlement(self) -> tuple[int, int]:
         return 0, 0 # index of vertex, edge to place settlement, road
     
-    def have_turn(self) -> ...:
-        ...
+    def have_turn(self) -> dict:
+        return {"end_turn": True} # gives actions
+    
+    def accept_trade(self, trade: dict) -> bool:
+        return False # determines weather a trade offer is good or not
