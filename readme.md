@@ -2,9 +2,7 @@
 
 ## Project Idea & overview
 
-This is an AI to play the boardgame Catan.
-
-First I will implement a version where you play against 2-3 other AIs, then if I have time I will make a stand-alone AI that allows direct interaction so it can be used for over the table play with people.
+This is an AI to play the boardgame Catan, it consists of 3 main files, each serving a different purpose.
 
 I will uer R to analyse the results to work out if changes improve the disign of the AI, or not.
 
@@ -25,9 +23,17 @@ I will uer R to analyse the results to work out if changes improve the disign of
 
 ## Documentation
 
-### main.py
+### against_AI.py
 
-- entrypoint for the program
+- let 1 user play against 2 - 3 AIs. This will have a GUI that emulates a game board and hand of cards etc
+
+### AI_benchmarking.py
+
+- makes 3 or 4 AIs play against each other, this allows you to test improvments to their algorithms and could be used to implement re-enforcement learning
+
+### over_the_table.py
+
+- allows you to play an irl game using a bot as a player. this will have a GUI to imput what each player does, and to update the state of the board
 
 ### src
 
