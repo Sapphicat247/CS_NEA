@@ -276,6 +276,9 @@ class Board:
             "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.hexes],
             "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.edges) if edge.port != None]
         }
+    
+    def __str__(self) -> str:
+        return str(self.encode())
         
     def place_settlement(self, owner: Colour, position: int, do_it: bool = True, need_road: bool = True) -> None:
         vert = self.verts[position]

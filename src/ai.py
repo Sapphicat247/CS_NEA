@@ -21,3 +21,6 @@ class AI:
     
     def accept_trade(self, trade: dict) -> bool:
         return False # determines weather a trade offer is good or not
+    
+    def on_opponent_action(self, action: dict, board: catan.Board) -> None: # gives the action e.g. dice roll, and the state of the board
+        ...
