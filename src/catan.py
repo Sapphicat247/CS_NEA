@@ -76,15 +76,15 @@ def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
 
 class Board:
-    __hexes: list[Hex] = []
-    __edges: list[Edge] = []
-    __verts: list[Vertex] = []
+    hexes: list[Hex] = []
+    edges: list[Edge] = []
+    verts: list[Vertex] = []
     
     def __init__(self, data: dict | None = None) -> None:
         # optional data dictionary to specify the board layout
         # set hexes on hexes ===========================================================================================================
         # create root
-        self.__hexes.append(Hex(hexes=[1,2,3,4,5,6], verts=[0,1,2,3,4,5]))
+        self.hexes.append(Hex(hexes=[1,2,3,4,5,6], verts=[0,1,2,3,4,5]))
         # first ring
         for i in range(6):
             # set "pointers"
@@ -95,7 +95,7 @@ class Board:
                      (i+5)%6 + 1,   # anticlockwise
                      i*2 + 7]       # edge (ACW)
             
-            self.__hexes.append(Hex(hexes=rotate(hexes, -i))) # create Hex and add to list
+            self.hexes.append(Hex(hexes=rotate(hexes, -i))) # create Hex and add to list
         
         # second ring
         for i in range(6):
@@ -113,8 +113,8 @@ class Board:
                            2*i + 7,       # ACW
                            -1]
             
-            self.__hexes.append(Hex(hexes=rotate(edgeHexes, -i))) # create Hex and add to list
-            self.__hexes.append(Hex(hexes=rotate(cornerHexes, -i))) # create Hex and add to list
+            self.hexes.append(Hex(hexes=rotate(edgeHexes, -i))) # create Hex and add to list
+            self.hexes.append(Hex(hexes=rotate(cornerHexes, -i))) # create Hex and add to list
         
         # set verts on hexes ===========================================================================================================
         for i in range(6):
@@ -127,9 +127,9 @@ class Board:
                      i*3 + 6,]      # Next ACW     new
 
             for _ in range(4):
-                self.__verts.append(Vertex())
+                self.verts.append(Vertex())
             
-            self.__hexes[i+1].verts = rotate(verts, -i)
+            self.hexes[i+1].verts = rotate(verts, -i)
         
         for i in range(6):
             # 5 new verts
@@ -147,78 +147,78 @@ class Board:
                            i*3 + 7,        # Prev Inside   # old
                            i*5 + 26,]      # Prev outside  # from prev
             
-            self.__hexes[2*i+7].verts = rotate(edgeVerts, -i) # edge
-            self.__hexes[2*i+8].verts = rotate(cornerVerts, -i) # corner
+            self.hexes[2*i+7].verts = rotate(edgeVerts, -i) # edge
+            self.hexes[2*i+8].verts = rotate(cornerVerts, -i) # corner
             
             for _ in range(5):
-                self.__verts.append(Vertex())
+                self.verts.append(Vertex())
         
         # set verts on edges ==============================================================================================================
         # inner tangents
         for i in range(6):
             # create edge
-            self.__edges.append(Edge(verts=[i, (i+1)%6]))
+            self.edges.append(Edge(verts=[i, (i+1)%6]))
             # set "pointers" in verts
-            self.__verts[i].edges[(i+2)%6] = i
+            self.verts[i].edges[(i+2)%6] = i
             
-            self.__verts[(i+1)%6].edges[(i+5)%6] = i
+            self.verts[(i+1)%6].edges[(i+5)%6] = i
         
         # inner normals
         for i in range(6):
             # create edge
-            self.__edges.append(Edge(verts=[i, i*3 + 6]))
+            self.edges.append(Edge(verts=[i, i*3 + 6]))
             # set "pointers" in verts
-            self.__verts[i].edges[i] = i + 6
+            self.verts[i].edges[i] = i + 6
             
-            self.__verts[i*3 + 6].edges[(i+3)%6] = i + 6
+            self.verts[i*3 + 6].edges[(i+3)%6] = i + 6
         
         # middle tangents
         for i in range(6):
             # create edges
-            self.__edges.append(Edge(verts=[i*3 + 6, i*3 + 7]))
-            self.__edges.append(Edge(verts=[i*3 + 7, i*3 + 8]))
-            self.__edges.append(Edge(verts=[i*3 + 8, (i+1)%6*3 + 6]))
+            self.edges.append(Edge(verts=[i*3 + 6, i*3 + 7]))
+            self.edges.append(Edge(verts=[i*3 + 7, i*3 + 8]))
+            self.edges.append(Edge(verts=[i*3 + 8, (i+1)%6*3 + 6]))
             # set "pointers" to verts
-            self.__verts[i*3 + 6].edges[(i+1)%6] = i*3 + 12
-            self.__verts[i*3 + 7].edges[(i+2)%6] = i*3 + 13
-            self.__verts[i*3 + 8].edges[(i+3)%6] = i*3 + 14
+            self.verts[i*3 + 6].edges[(i+1)%6] = i*3 + 12
+            self.verts[i*3 + 7].edges[(i+2)%6] = i*3 + 13
+            self.verts[i*3 + 8].edges[(i+3)%6] = i*3 + 14
             
-            self.__verts[i*3 + 7].edges[(i+4)%6] = i*3 + 12
-            self.__verts[i*3 + 8].edges[(i+5)%6] = i*3 + 13
-            self.__verts[(i+1)%6*3 + 6].edges[i] = i*3 + 14
+            self.verts[i*3 + 7].edges[(i+4)%6] = i*3 + 12
+            self.verts[i*3 + 8].edges[(i+5)%6] = i*3 + 13
+            self.verts[(i+1)%6*3 + 6].edges[i] = i*3 + 14
         
         # outer normals
         for i in range(6):
             # create edges
-            self.__edges.append(Edge(verts=[i*3 + 7, i*5 + 26]))
-            self.__edges.append(Edge(verts=[i*3 + 8, (i+1)%6*5 + 24]))
+            self.edges.append(Edge(verts=[i*3 + 7, i*5 + 26]))
+            self.edges.append(Edge(verts=[i*3 + 8, (i+1)%6*5 + 24]))
             # set "pointers"
-            self.__verts[i*3 + 7].edges[i] = i*2 + 30
-            self.__verts[i*3 + 8].edges[(i+1)%6] = i*2 + 31
+            self.verts[i*3 + 7].edges[i] = i*2 + 30
+            self.verts[i*3 + 8].edges[(i+1)%6] = i*2 + 31
             
-            self.__verts[i*5 + 26].edges[(i+3)%6] = i*2 + 30
-            self.__verts[(i+1)%6*5 + 24].edges[(i+4)%6] = i*2 + 31
+            self.verts[i*5 + 26].edges[(i+3)%6] = i*2 + 30
+            self.verts[(i+1)%6*5 + 24].edges[(i+4)%6] = i*2 + 31
         
         # outer tangents
         for i in range(6):
             # create edges
-            self.__edges.append(Edge(verts=[i*5 + 24, i*5 + 25]))
-            self.__edges.append(Edge(verts=[i*5 + 25, i*5 + 26]))
-            self.__edges.append(Edge(verts=[i*5 + 26, i*5 + 27]))
-            self.__edges.append(Edge(verts=[i*5 + 27, i*5 + 28]))
-            self.__edges.append(Edge(verts=[i*5 + 28, (i+1)%6*5 + 24]))
+            self.edges.append(Edge(verts=[i*5 + 24, i*5 + 25]))
+            self.edges.append(Edge(verts=[i*5 + 25, i*5 + 26]))
+            self.edges.append(Edge(verts=[i*5 + 26, i*5 + 27]))
+            self.edges.append(Edge(verts=[i*5 + 27, i*5 + 28]))
+            self.edges.append(Edge(verts=[i*5 + 28, (i+1)%6*5 + 24]))
             # set "pointers"
-            self.__verts[i*5 + 24].edges[(i+1)%6] = i*5+42
-            self.__verts[i*5 + 25].edges[(i+2)%6] = i*5+43
-            self.__verts[i*5 + 26].edges[(i+1)%6] = i*5+44
-            self.__verts[i*5 + 27].edges[(i+2)%6] = i*5+45
-            self.__verts[i*5 + 28].edges[(i+3)%6] = i*5+46
+            self.verts[i*5 + 24].edges[(i+1)%6] = i*5+42
+            self.verts[i*5 + 25].edges[(i+2)%6] = i*5+43
+            self.verts[i*5 + 26].edges[(i+1)%6] = i*5+44
+            self.verts[i*5 + 27].edges[(i+2)%6] = i*5+45
+            self.verts[i*5 + 28].edges[(i+3)%6] = i*5+46
             
-            self.__verts[i*5 + 25].edges[(i+4)%6] = i*5+42
-            self.__verts[i*5 + 26].edges[(i+5)%6] = i*5+43
-            self.__verts[i*5 + 27].edges[(i+4)%6] = i*5+44
-            self.__verts[i*5 + 28].edges[(i+5)%6] = i*5+45
-            self.__verts[(i+1)%6*5 + 24].edges[i] = i*5+46
+            self.verts[i*5 + 25].edges[(i+4)%6] = i*5+42
+            self.verts[i*5 + 26].edges[(i+5)%6] = i*5+43
+            self.verts[i*5 + 27].edges[(i+4)%6] = i*5+44
+            self.verts[i*5 + 28].edges[(i+5)%6] = i*5+45
+            self.verts[(i+1)%6*5 + 24].edges[i] = i*5+46
             
         # set values and resources of hexes
         
@@ -231,7 +231,7 @@ class Board:
             resources = [Resource.GRAIN]*4 + [Resource.WOOL]*4 + [Resource.WOOD]*4 + [Resource.ORE]*3 + [Resource.BRICK]*3 + [Resource.DESERT]*1
             random.shuffle(resources) # randomise them so they are placed differently
             
-            for i in self.__hexes:
+            for i in self.hexes:
                 i.resource = resources.pop(0)
                 if i.resource != Resource.DESERT:
                     i.diceValue = probablilities.pop(0)
@@ -251,11 +251,11 @@ class Board:
             positions = [sum(gaps[:i+1]) + 42 + i for i in range(len(gaps))]
             
             for i in positions:
-                self.__edges[i].port = Port(resources.pop(), Direction.NE) # MARK: TODO
+                self.edges[i].port = Port(resources.pop(), Direction.NE) # MARK: TODO
         
         else:
             # hexes
-            for i, hex in enumerate(self.__hexes):
+            for i, hex in enumerate(self.hexes):
                 hex.resource = Resource[data["resources"][i]["resource"]]
                 hex.diceValue = data["resources"][i]["value"]
                 if hex.resource == Resource.DESERT:
@@ -263,26 +263,26 @@ class Board:
             
             # ports
             for port in data["ports"]:
-                self.__edges[port["position"]].port = Port(Resource[port["resource"]], Direction.NE) # MARK: TODO
+                self.edges[port["position"]].port = Port(Resource[port["resource"]], Direction.NE) # MARK: TODO
                 
     
     def encode(self) -> dict:
         return {
-            "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.__hexes],
-            "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.__edges) if edge.port != None]
+            "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.hexes],
+            "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.edges) if edge.port != None]
         }
     
     def valid_placement(self, structure: Structure, pos: int, settlements_need_road: bool = True) -> bool:
         match structure.type:
             case Building.SETTLEMENT:
-                vert = self.__verts[pos]
+                vert = self.verts[pos]
                 
                 if vert.structure.owner != Colour.NONE: # building already exists there
                     return False
                 
-                adj_edges = [self.__edges[i] for i in vert.edges if i != None]
+                adj_edges = [self.edges[i] for i in vert.edges if i != None]
                 for edge in adj_edges:
-                    adj_vert = self.__verts[[i for i in edge.verts if i != pos][0]] # always 2 without condition
+                    adj_vert = self.verts[[i for i in edge.verts if i != pos][0]] # always 2 without condition
                     if adj_vert.structure.owner != Colour.NONE: # building exists 1 road away from target
                         return False
                 
@@ -298,21 +298,21 @@ class Board:
             
             case Building.CITY:
                 # upgrade to players own settlement
-                return self.__verts[pos] == Structure(structure.owner, Building.SETTLEMENT) # settlement owned by the same person
+                return self.verts[pos] == Structure(structure.owner, Building.SETTLEMENT) # settlement owned by the same person
             
             case Building.ROAD:
-                road = self.__edges[pos]
+                road = self.edges[pos]
                 # must be connected to players road or city / settlement. cant place through another player's settlement
                 if road.structure != Structure(): # not empty
                     return False
                 
-                adj_verts = [self.__verts[i] for i in road.verts]
+                adj_verts = [self.verts[i] for i in road.verts]
                 
                 for vert in adj_verts:
                     if vert.structure == Structure(structure.owner, Building.SETTLEMENT) or vert.structure == Structure(structure.owner, Building.CITY): # city or settlement owner by this player adjacent to road target
                         return True
                     
-                    adj_edges = [self.__edges[i] for i in vert.edges if i != None]
+                    adj_edges = [self.edges[i] for i in vert.edges if i != None]
                     for edge in adj_edges:
                         if edge.structure == Structure(structure.owner, Building.ROAD) and vert.structure.owner == Colour.NONE: # road owned by this person AND not interupted by settlement / city
                             return True

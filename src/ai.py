@@ -1,15 +1,20 @@
-import catan
+from src import catan
 
 class AI:
     # basic class to build other versions off
     # AIs are trusted to not make illegal moves.
     victory_points: int = 0
     
-    def place_first_settlement(self, board: catan.Board) -> tuple[int, int]:
-        return 0, 0 # index of vertex, edge to place settlement, road
-
-    def place_second_settlement(self, board: catan.Board) -> tuple[int, int]:
-        return 0, 0 # index of vertex, edge to place settlement, road
+    def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> dict:
+        match settlement_number:
+            case "first":
+                return {"settlement": 0, "road": 0} # index of vertex, edge to place settlement, road
+        
+            case "second":
+                return {"settlement": 2, "road": 1} # index of vertex, edge to place settlement, road
+            
+            case _:
+                raise ValueError
     
     def have_turn(self, board: catan.Board) -> dict:
         return {"end_turn": True} # gives actions
