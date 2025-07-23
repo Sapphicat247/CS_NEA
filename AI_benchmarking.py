@@ -26,8 +26,11 @@ players: list[AI.AI] = [
 # MARK: set-up phaze
 # choose starting player
 
+attempts = 0
+
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
+        attempts += 1
         print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement", end=" ")
         effect = players[i].place_starter_settlement(j, board) # get a move from the AI
         print(f"at {effect}{colours.END}")
@@ -49,6 +52,8 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
             else: # can build road
                 break
 
+print(f"{colours.fg.GREEN}setup took {attempts} attempts{colours.fg.END}")
+
 # MARK: main loop
 
 current_turn = 0
@@ -66,3 +71,4 @@ while 1:
     # increment turn counter
     current_turn += 1
     current_turn %= 4
+    break

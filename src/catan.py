@@ -298,7 +298,7 @@ class Board:
                     if do_it: self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
                     return
             
-            BuildingError("Settlements can only be built on a vertex along one of your roads")
+            raise BuildingError("Settlements can only be built on a vertex along one of your roads")
         
         else:
             if do_it: self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
@@ -310,14 +310,14 @@ class Board:
             if do_it: self.verts[position].structure = Structure(owner, Building.CITY)
         
         else:
-            BuildingError("Cities must be placed on one of your own settlements")
+            raise BuildingError("Cities must be placed on one of your own settlements")
     
     def place_road(self, owner: Colour, position: int, do_it: bool = True) -> None:
         road = self.edges[position]
         
         # must be connected to players road or city / settlement. cant place through another player's settlement
         if road.structure != Structure(): # not empty
-            BuildingError("Cannot build a road over another one")
+            raise BuildingError("Cannot build a road over another one")
         
         adj_verts = [self.verts[i] for i in road.verts]
         
@@ -332,7 +332,7 @@ class Board:
                     if do_it: self.edges[position].structure = Structure(owner, Building.ROAD)
                     return
 
-        BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
+        raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
     
     def delete_settlement(self, position: int):
         self.verts[position].structure = Structure()

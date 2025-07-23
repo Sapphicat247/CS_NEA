@@ -1,4 +1,9 @@
 from src import catan
+import random
+
+# 54 verts
+# 72 edges
+# 19 hexes
 
 class AI:
     # basic class to build other versions off
@@ -8,10 +13,10 @@ class AI:
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> dict:
         match settlement_number:
             case "first":
-                return {"settlement_pos": 0, "road_pos": 0} # index of vertex, edge to place settlement, road
+                return {"settlement_pos": random.randint(0, 53), "road_pos": random.randint(0, 71)} # index of vertex, edge to place settlement, road
         
             case "second":
-                return {"settlement_pos": 2, "road_pos": 1} # index of vertex, edge to place settlement, road
+                return {"settlement_pos": random.randint(0, 53), "road_pos": random.randint(0, 71)} # index of vertex, edge to place settlement, road
             
             case _:
                 raise ValueError
