@@ -8,10 +8,10 @@ class AI:
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> dict:
         match settlement_number:
             case "first":
-                return {"settlement": 0, "road": 0} # index of vertex, edge to place settlement, road
+                return {"settlement_pos": 0, "road_pos": 0} # index of vertex, edge to place settlement, road
         
             case "second":
-                return {"settlement": 2, "road": 1} # index of vertex, edge to place settlement, road
+                return {"settlement_pos": 2, "road_pos": 1} # index of vertex, edge to place settlement, road
             
             case _:
                 raise ValueError

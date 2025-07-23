@@ -1,6 +1,5 @@
 from src import AI, catan
 import colours
-import copy
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
@@ -29,24 +28,26 @@ players: list[AI.AI] = [
 
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
-        print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement{colours.END}")
-        effect = players[i].place_starter_settlement(j, board)
-        if board.valid_placement(catan.Structure(catan.Colour(i+1), catan.Building.SETTLEMENT), effect["settlement"], settlements_need_road=False):
-            # settlement can be placed there
+        print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement", end=" ")
+        effect = players[i].place_starter_settlement(j, board) # get a move from the AI
+        print(f"at {effect}{colours.END}")
+        
+        try:
+            board.place_settlement(catan.Colour(i+1), effect["settlement_pos"], need_road=False)
             
-            tester = copy.deepcopy(board)
-            tester.verts[effect["settlement"]].structure = catan.Structure(catan.Colour(i+1), catan.Building.SETTLEMENT)
-            if board.valid_placement(catan.Structure(catan.Colour(i+1), catan.Building.ROAD), effect["road"]):
-                # road can be placed
-                board.verts[effect["settlement"]].structure = catan.Structure(catan.Colour(i+1), catan.Building.SETTLEMENT)
-                board.edges[effect["road"]].structure = catan.Structure(catan.Colour(i+1), catan.Building.ROAD)
+        except catan.BuildingError as e:
+            print(f"error: invalid settlement placement: {e}")
+        
+        else: # can build settlement
+            try:
+                board.place_road(catan.Colour(i+1), effect["road_pos"])
                 
-                break # valid input so break out of the loop
+            except catan.BuildingError as e:
+                print(f"error: invalid road placement: {e}")
+                board.delete_settlement(effect["settlement_pos"]) # dont keep settlement
             
-            else:
-                print("error: invalid road placement")
-        else:
-            print("error: invalid settlement placement")
+            else: # can build road
+                break
 
 # MARK: main loop
 

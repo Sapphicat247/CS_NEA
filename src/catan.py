@@ -3,6 +3,11 @@ from dataclasses import dataclass, field
 import random
 from pprint import pprint
 
+class BuildingError(Exception):
+    def __init__(self, message):            
+        # Call the base class constructor with the parameters it needs
+        super().__init__(message)
+
 class Direction(Flag):
     N  = 2**0
     NE = 2**1
@@ -271,57 +276,69 @@ class Board:
             "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.hexes],
             "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.edges) if edge.port != None]
         }
+        
+    def place_settlement(self, owner: Colour, position: int, do_it: bool = True, need_road: bool = True) -> None:
+        vert = self.verts[position]
+                
+        if vert.structure.owner != Colour.NONE: # building already exists there
+            raise BuildingError("Cannot build a settlement over another building")
+        
+        adj_edges = [self.edges[i] for i in vert.edges if i != None]
+        for edge in adj_edges:
+            adj_vert = self.verts[[i for i in edge.verts if i != position][0]] # always 2 without condition
+            if adj_vert.structure.owner != Colour.NONE: # building exists 1 road away from target
+                raise BuildingError("Cannot build a settlement that close to another one")
+        
+        if need_road:
+            for edge in adj_edges:
+                if edge.structure == Structure(owner, Building.ROAD): # road owned by this person
+                    if do_it: self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
+                    return
+            
+            BuildingError("Settlements can only be built on a vertex along one of your roads")
+        
+        else:
+            if do_it: self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
+            return
     
-    def valid_placement(self, structure: Structure, pos: int, settlements_need_road: bool = True) -> bool:
-        match structure.type:
-            case Building.SETTLEMENT:
-                vert = self.verts[pos]
-                
-                if vert.structure.owner != Colour.NONE: # building already exists there
-                    return False
-                
-                adj_edges = [self.edges[i] for i in vert.edges if i != None]
-                for edge in adj_edges:
-                    adj_vert = self.verts[[i for i in edge.verts if i != pos][0]] # always 2 without condition
-                    if adj_vert.structure.owner != Colour.NONE: # building exists 1 road away from target
-                        return False
-                
-                if settlements_need_road:
-                    for edge in adj_edges:
-                        if edge.structure == Structure(structure.owner, Building.ROAD): # road owned by this person
-                            return True
-                
-                else:
-                    return True
-                
-                return False
+    def place_city(self, owner: Colour, position: int, do_it: bool = True) -> None:
+        # upgrade to players own settlement
+        if self.verts[position].structure == Structure(owner, Building.SETTLEMENT): # settlement owned by the same person
+            if do_it: self.verts[position].structure = Structure(owner, Building.CITY)
+        
+        else:
+            BuildingError("Cities must be placed on one of your own settlements")
+    
+    def place_road(self, owner: Colour, position: int, do_it: bool = True) -> None:
+        road = self.edges[position]
+        
+        # must be connected to players road or city / settlement. cant place through another player's settlement
+        if road.structure != Structure(): # not empty
+            BuildingError("Cannot build a road over another one")
+        
+        adj_verts = [self.verts[i] for i in road.verts]
+        
+        for vert in adj_verts:
+            if vert.structure.owner == owner: # city or settlement owned by this player adjacent to road target
+                if do_it: self.edges[position].structure = Structure(owner, Building.ROAD)
+                return
             
-            case Building.CITY:
-                # upgrade to players own settlement
-                return self.verts[pos] == Structure(structure.owner, Building.SETTLEMENT) # settlement owned by the same person
-            
-            case Building.ROAD:
-                road = self.edges[pos]
-                # must be connected to players road or city / settlement. cant place through another player's settlement
-                if road.structure != Structure(): # not empty
-                    return False
-                
-                adj_verts = [self.verts[i] for i in road.verts]
-                
-                for vert in adj_verts:
-                    if vert.structure == Structure(structure.owner, Building.SETTLEMENT) or vert.structure == Structure(structure.owner, Building.CITY): # city or settlement owner by this player adjacent to road target
-                        return True
-                    
-                    adj_edges = [self.edges[i] for i in vert.edges if i != None]
-                    for edge in adj_edges:
-                        if edge.structure == Structure(structure.owner, Building.ROAD) and vert.structure.owner == Colour.NONE: # road owned by this person AND not interupted by settlement / city
-                            return True
-                
-                return False
-            
-            case _:
-                print(f"tried to place invalid building: {structure} at {pos}")
-                return False
+            adj_edges = [self.edges[i] for i in vert.edges if i != None]
+            for edge in adj_edges:
+                if edge.structure == Structure(owner, Building.ROAD) and vert.structure.owner == Colour.NONE: # road owned by this person AND not interupted by settlement / city
+                    if do_it: self.edges[position].structure = Structure(owner, Building.ROAD)
+                    return
+
+        BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
+    
+    def delete_settlement(self, position: int):
+        self.verts[position].structure = Structure()
+    
+    def delete_city(self, position: int):
+        self.verts[position].structure = Structure()
+        
+    def delete_road(self, position: int):
+        self.edges[position].structure = Structure()
 
 if __name__ == "__main__":
     temp = Board()
