@@ -2,6 +2,7 @@ from enum import Enum, Flag
 from dataclasses import dataclass, field
 import random
 from pprint import pprint
+from collections import Counter
 
 class BuildingError(Exception):
     def __init__(self, message):            
@@ -32,6 +33,7 @@ class Building(Enum):
     SETTLEMENT = 1
     CITY = 2
     ROAD = 3
+    DEVELOPMENT_CARD = 4
 
 @dataclass
 class Structure:
@@ -53,7 +55,8 @@ class Development_card(Enum):
     ROAD_BUILDING = 3
     MONOPOLY = 4
 
-action = tuple[str, None | int | Development_card | dict[str, list[Resource]]]
+Action = tuple[str, None | int | Development_card | dict[str, list[Resource]]]
+Hand = list[Resource | Development_card]
 
 @dataclass
 class Port:
@@ -88,6 +91,28 @@ class Hex:
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
+
+def can_afford(hand: Hand, building: Building) -> bool:
+    match building:
+        case Building.SETTLEMENT:
+            needed = (Resource.BRICK, Resource.WOOD, Resource.GRAIN, Resource.WOOL)
+            
+        case Building.CITY:
+            needed = (Resource.ORE, Resource.ORE, Resource.ORE, Resource.GRAIN, Resource.GRAIN)
+            
+        case Building.ROAD:
+            needed = (Resource.BRICK, Resource.WOOD)
+        
+        case Building.DEVELOPMENT_CARD:
+            needed = (Resource.ORE, Resource.GRAIN, Resource.WOOL)
+        
+        case _: # shoud never happen
+            raise ValueError(f"{building} is not of type Building???")
+        
+    hand_counter = Counter(hand)
+    needed_counter = Counter(needed)
+        
+    return all(needed_counter[element] <= hand_counter[element] for element in needed_counter)
 
 class Board:
     hexes: list[Hex] = []
@@ -319,7 +344,10 @@ class Board:
         
         return resources
 
-    def place_settlement(self, owner: Colour, position: int, do_it: bool = True, need_road: bool = True) -> None:
+    def place_settlement(self, owner: Colour, hand: Hand | None, position: int, do_it: bool = True, need_road: bool = True) -> None:
+        if hand != None and not can_afford(hand, Building.SETTLEMENT):
+            raise BuildingError("Cannot afford a settlement")
+        
         vert = self.verts[position]
                 
         if vert.structure.owner != Colour.NONE: # building already exists there
@@ -343,7 +371,10 @@ class Board:
             if do_it: self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
             return
     
-    def place_city(self, owner: Colour, position: int, do_it: bool = True) -> None:
+    def place_city(self, owner: Colour, hand: Hand | None, position: int, do_it: bool = True) -> None:
+        if hand != None and not can_afford(hand, Building.CITY):
+            raise BuildingError("Cannot afford a city")
+        
         # upgrade to players own settlement
         if self.verts[position].structure == Structure(owner, Building.SETTLEMENT): # settlement owned by the same person
             if do_it: self.verts[position].structure = Structure(owner, Building.CITY)
@@ -351,7 +382,10 @@ class Board:
         else:
             raise BuildingError("Cities must be placed on one of your own settlements")
     
-    def place_road(self, owner: Colour, position: int, do_it: bool = True) -> None:
+    def place_road(self, owner: Colour, hand: Hand | None, position: int, do_it: bool = True) -> None:
+        if hand != None and not can_afford(hand, Building.ROAD):
+            raise BuildingError("Cannot afford a road")
+        
         road = self.edges[position]
         
         # must be connected to players road or city / settlement. cant place through another player's settlement
