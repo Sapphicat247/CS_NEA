@@ -46,6 +46,15 @@ class Resource(Enum):
     ORE = 4
     GRAIN = 5
 
+class Development_card(Enum):
+    KNIGHT = 0
+    VICTORY_POINT = 1
+    YEAR_OF_PLENTY = 2
+    ROAD_BUILDING = 3
+    MONOPOLY = 4
+
+action = tuple[str, None | int | Development_card | dict[str, list[Resource]]]
+
 @dataclass
 class Port:
     resource: Resource
@@ -84,8 +93,12 @@ class Board:
     hexes: list[Hex] = []
     edges: list[Edge] = []
     verts: list[Vertex] = []
+    development_cards: list[Development_card] = []
     
     def __init__(self, data: dict | None = None) -> None:
+        self.development_cards = [Development_card.KNIGHT]*14 + [Development_card.VICTORY_POINT]*5 + [Development_card.YEAR_OF_PLENTY]*2 + [Development_card.ROAD_BUILDING]*2 + [Development_card.MONOPOLY]*2
+        random.shuffle(self.development_cards)
+        
         # optional data dictionary to specify the board layout
         # set hexes on hexes ===========================================================================================================
         # create root
@@ -279,7 +292,33 @@ class Board:
     
     def __str__(self) -> str:
         return str(self.encode())
+    
+    def get_resources(self, dice_value: int) -> dict[Colour, list[Resource]]:
+        resources = {
+            Colour.RED: [],
+            Colour.ORANGE: [],
+            Colour.BLUE: [],
+            Colour.WHITE: [],
+        }
         
+        for hex in self.hexes:
+            if hex.diceValue == dice_value:
+                # resource producing hex
+                for vert_i in hex.verts:
+                    if vert_i != None:
+                        # vertex that could have settlement
+                        vert = self.verts[vert_i]
+                        if vert.structure.type == Building.SETTLEMENT:
+                            # settlement
+                            resources[vert.structure.owner].append(hex.resource)
+                            
+                        elif vert.structure.type == Building.CITY:
+                            # city
+                            resources[vert.structure.owner].append(hex.resource)
+                            resources[vert.structure.owner].append(hex.resource)
+        
+        return resources
+
     def place_settlement(self, owner: Colour, position: int, do_it: bool = True, need_road: bool = True) -> None:
         vert = self.verts[position]
                 

@@ -1,5 +1,6 @@
 from src import AI, catan
 import colours
+import random
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
@@ -16,11 +17,11 @@ board = catan.Board()
 
 # create AIs
 
-players: list[AI.AI] = [
-    AI.AI(), # red
-    AI.AI(), # orange
-    AI.AI(), # blue
-    AI.AI(), # white
+AI_list: list[AI.AI] = [
+    AI.AI(catan.Colour.RED),
+    AI.AI(catan.Colour.ORANGE),
+    AI.AI(catan.Colour.BLUE),
+    AI.AI(catan.Colour.WHITE),
 ]
 
 # MARK: set-up phaze
@@ -32,7 +33,7 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
     while 1:
         attempts += 1
         print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement", end=" ")
-        effect = players[i].place_starter_settlement(j, board) # get a move from the AI
+        effect = AI_list[i].place_starter_settlement(j, board) # get a move from the AI
         print(f"at {effect}{colours.END}")
         
         try:
@@ -50,6 +51,7 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
                 board.delete_settlement(effect["settlement_pos"]) # dont keep settlement
             
             else: # can build road
+                AI_list[i].victory_points += 1
                 break
 
 print(f"{colours.fg.GREEN}setup took {attempts} attempts{colours.fg.END}")
@@ -59,14 +61,31 @@ print(f"{colours.fg.GREEN}setup took {attempts} attempts{colours.fg.END}")
 current_turn = 0
 
 while 1:
+    print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
+    print("\trolling dice")
+    dice = random.randint(1, 6) + random.randint(1, 6)
+    print(f"\trolled a {dice};", "moving robber" if dice == 7 else "distributing resources")
+    # filter for rolling a 7
+    
+    if dice == 7:
+        ...# TODO do robber stuff
+        
+    else:
+        resources = board.get_resources(dice)
+        for ai in AI_list:
+            ai.hand += resources[ai.colour]
+    
     while 1:
-        print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
+        print("\tdoing action")
+        action, args = AI_list[current_turn].do_action(board)
         
-        # try to have turn
-        effect = players[current_turn].have_turn(board)
+        print(f"\tinterpriting action: {action}")
         
-        if effect["end_turn"] == True:
-            break
+        match action:
+            case "end turn":
+                break
+    
+    print("\tturn over, 'passing the dice'")
     
     # increment turn counter
     current_turn += 1
