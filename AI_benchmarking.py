@@ -162,7 +162,7 @@ while 1:
                 
                 # has card
                 current_AI.hand.remove(card)
-                # interprit card
+                # interprit card TODO
                 match card:
                     case catan.Development_card.KNIGHT:
                         ...

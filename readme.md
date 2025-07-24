@@ -31,6 +31,10 @@ I will uer R to analyse the results to work out if changes improve the disign of
 
 - makes 3 or 4 AIs play against each other, this allows you to test improvments to their algorithms and could be used to implement re-enforcement learning
 
+progress:
+- all actions that can be done on a turn are implemented, except playing development cards and trading.
+- set-up phase complete
+
 ### over_the_table.py
 
 - allows you to play an irl game using a bot as a player. this will have a GUI to imput what each player does, and to update the state of the board
