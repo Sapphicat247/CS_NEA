@@ -1,2 +1,2 @@
-from . import AI
+from . import ai
 from . import catan

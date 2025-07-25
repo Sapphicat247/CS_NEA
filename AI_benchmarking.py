@@ -1,5 +1,5 @@
 from src import catan
-from src.AI import AI
+from src.ai import AI
 import colours
 
 import random
@@ -195,4 +195,4 @@ while 1:
     # increment turn counter
     current_turn += 1
     current_turn %= 4
-    break
+    break # only do 1 turn, for testing
