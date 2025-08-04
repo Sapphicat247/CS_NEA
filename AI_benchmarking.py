@@ -39,7 +39,7 @@ AI_list: list[AI] = [
 
 for ai in AI_list:
     with dpg.window(label=ai.colour.name):
-        dpg.add_text(f"{ai.colour.name} player info")
+        dpg.add_text(f"{ai.colour.name} player info", tag=f"player_{ai.colour.name}")
 
 
 # MARK: set-up phaze
@@ -103,6 +103,9 @@ while dpg.is_dearpygui_running():
         for ai in AI_list:
             ai.hand += resources[ai.colour]
             ai.on_opponent_action(("dice roll", dice), board)
+    
+    board.draw()
+    dpg.render_dearpygui_frame()
     
     while 1:
         print("\tdoing action")
@@ -207,13 +210,19 @@ while dpg.is_dearpygui_running():
             
             case _:
                 ...
-        
+
         # if it gets to here, action was succesfull.
-        # so notify players
+        # so notify players and update gui
         
         for ai in AI_list:
             if ai != current_AI:
                 ai.on_opponent_action((action, args), board)
+        
+        board.draw()
+        
+        # update info pannels for each player
+        
+        dpg.render_dearpygui_frame()
         
     print("\tturn over, 'passing the dice'")
     
