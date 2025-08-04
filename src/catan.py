@@ -1,8 +1,9 @@
 from enum import Enum, Flag
 from dataclasses import dataclass, field
-import random
+import random, math
 from pprint import pprint
 from collections import Counter
+import dearpygui.dearpygui as dpg
 
 class BuildingError(Exception):
     def __init__(self, message):            
@@ -72,6 +73,8 @@ class Vertex:
     structure: Structure = field(default_factory=Structure)
     #                                                                     0   1   2   3   4   5
     edges: list[int | None] = field(default_factory = lambda: [None]*6) # N   NE  SE  S   SW  NW
+    
+    relative_pos: tuple[float, float] = (0, 0)
 
 @dataclass
 class Edge:
@@ -87,7 +90,9 @@ class Hex:
     hasRobber: bool = False
     #                                                                     0   1   2   3   4   5
     hexes: list[int | None] = field(default_factory = lambda: [None]*6) # NE  E   SE  SW  W   NW
-    verts: list[int | None] = field(default_factory = lambda: [None]*6) # N   NE  SE  S   SW  NW
+    verts: list[int] =        field(default_factory = lambda: [-1]*6)   # N   NE  SE  S   SW  NW
+    
+    relative_pos: tuple[float, float] = (0, 0)
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
@@ -121,6 +126,19 @@ class Board:
     development_cards: list[Development_card] = []
     
     def __init__(self, data: dict | None = None) -> None:
+        # set up dpg viewport =========================================================================================================
+        dpg.create_context()
+        
+        with dpg.viewport_drawlist(label="Board", front=False):
+            with dpg.draw_layer(tag="hexes"):
+                pass
+            with dpg.draw_layer(tag="edges"):
+                pass
+            with dpg.draw_layer(tag="verts"):
+                pass
+            with dpg.draw_layer(tag="debug"):
+                pass
+        
         self.development_cards = [Development_card.KNIGHT]*14 + [Development_card.VICTORY_POINT]*5 + [Development_card.YEAR_OF_PLENTY]*2 + [Development_card.ROAD_BUILDING]*2 + [Development_card.MONOPOLY]*2
         random.shuffle(self.development_cards)
         
@@ -195,7 +213,7 @@ class Board:
             
             for _ in range(5):
                 self.verts.append(Vertex())
-        
+
         # set verts on edges ==============================================================================================================
         # inner tangents
         for i in range(6):
@@ -262,12 +280,42 @@ class Board:
             self.verts[i*5 + 27].edges[(i+4)%6] = i*5+44
             self.verts[i*5 + 28].edges[(i+5)%6] = i*5+45
             self.verts[(i+1)%6*5 + 24].edges[i] = i*5+46
+        
+        # set vert positions
+        # hexes
+        for i in range(6):
+            theta = i * math.pi/3
+            theta2 = (i+1)%6 * math.pi/3
+            self.hexes[i+1].relative_pos =   (math.sin(theta) + math.sin(theta2), math.cos(theta) + math.cos(theta2))
+            self.hexes[2*i+8].relative_pos = (2*(math.sin(theta) + math.sin(theta2)), 2*(math.cos(theta) + math.cos(theta2)))
+            self.hexes[2*i+7].relative_pos = (3*math.sin(theta), 3*math.cos(theta))
             
-        # set values and resources of hexes
+        # verts
+        # root hex
+        for i in range(6):
+            theta = i * math.pi/3
+            self.verts[i].relative_pos = (math.sin(theta), math.cos(theta))
+        
+        # outer corners
+        for hex_i in range(6):
+
+            for theta_i, i in enumerate(self.hexes[hex_i*2 + 8].verts):
+                theta = theta_i * math.pi/3
+                self.verts[i].relative_pos = (math.sin(theta) + self.hexes[hex_i*2 + 8].relative_pos[0],
+                                                math.cos(theta) + self.hexes[hex_i*2 + 8].relative_pos[1])
+        
+        # middle edges outer and inner verts
+        for i in range(6):
+            theta = i * math.pi/3
+            self.verts[3*i+6].relative_pos = (2*math.sin(theta), 2*math.cos(theta))
+            self.verts[5*i+25].relative_pos = (4*math.sin(theta), 4*math.cos(theta))
+            
+        
+        # set values and resources of hexes ========================================================================================
         
         if data == None: # board set-up not specified
             
-            #                 A  B  C ...
+            #                 A  B  C ...                                  ... P  Q  R
             probablilities = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11] # ordered as per letters on the backs of the chits
             
             # list of all resource hexes, 4 grain, 4 wool, 4 wood, 3 ore, 3 brick, 1 dessert
@@ -415,6 +463,85 @@ class Board:
         
     def delete_road(self, position: int):
         self.edges[position].structure = Structure()
+    
+    def draw(self):
+        dpg.delete_item("hexes", children_only=True) # clear
+        dpg.delete_item("edges", children_only=True) # clear
+        dpg.delete_item("verts", children_only=True) # clear
+        dpg.delete_item("debug", children_only=True) # clear
+        
+        # get size of each hex
+        width = dpg.get_viewport_client_width()
+        height = dpg.get_viewport_client_height()
+        
+        vert_size = height//8
+        horizontal_size = width//8.660254038 # 5*sqrt(3)
+        
+        size = min(vert_size, horizontal_size)*.9 # side length
+        center = (width//2, height//2)
+
+        for hex_i, hex in enumerate(self.hexes):
+            # get positions
+            vert_positions = [self.verts[i].relative_pos for i in hex.verts if i != None]
+            vert_positions = [[i[0]*size + center[0], i[1]*size + center[1]] for i in vert_positions]
+            
+            colour = {"DESERT": (204, 176, 104, 255),
+                      "WOOD":   (45,  82,  44,  255),
+                      "WOOL":   (82,  230, 78,  255),
+                      "BRICK":  (204, 82,  20,  255),
+                      "ORE":    (115, 131, 156, 255),
+                      "GRAIN":  (237, 237, 69,  255)}[hex.resource.name]
+            
+            dpg.draw_polygon(vert_positions, fill=colour, parent="hexes", color=(0,0,0,0))
+            
+            # dice number / robber
+            if hex.hasRobber:
+                col = (61, 68, 79, 255)
+            else:
+                col = (232, 232, 181, 255)
+                
+            dpg.draw_circle((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), size/4, fill=col, parent="hexes", color=(0,0,0,0))
+                
+
+            if hex.resource != Resource.DESERT:
+                if hex.diceValue == 6 or hex.diceValue == 8:
+                    col = (255, 0, 0, 255)
+                else:
+                    col = (0  , 0, 0, 255)
+                dpg.draw_text((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), f"{hex.diceValue}", color=col, size=size/4, parent="debug")
+                
+            
+            # debug text
+            #dpg.draw_text((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), f"{hex_i}", color=(0, 0, 0, 255), size=size/8, parent="debug")
+        
+        for vert_i, vert in enumerate(self.verts):
+            pos = [i*size for i in vert.relative_pos]
+            
+            if vert.structure.owner != Colour.NONE:
+                colour = {"RED":    (255, 0,   0,   255),
+                          "ORANGE": (255, 127, 44,  255),
+                          "BLUE":   (0,   0,   255, 255),
+                          "WHITE":  (255, 255, 255,  255)}[vert.structure.owner.name]
+                
+                dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/6, fill=colour, parent="verts", color=(0,0,0,0))
+            
+            if vert.structure.type == Building.CITY:
+                dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/8, fill=(0,0,0,255), parent="verts", color=(0,0,0,0))
+            
+            #dpg.draw_text((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), f"{vert_i}", color=(255, 0, 0, 255), size=20, parent="debug")
+            
+        for edge_i, edge in enumerate(self.edges):
+            if edge.structure.owner != Colour.NONE:
+                colour = {"RED":    (255, 0,   0,   255),
+                          "ORANGE": (255, 127, 0,   255),
+                          "BLUE":   (0,   0,   255, 255),
+                          "WHITE":  (255, 255, 255,  255)}[edge.structure.owner.name]
+                
+                p0 = (self.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.verts[edge.verts[0]].relative_pos[1]*size + center[1])
+                p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
+                    
+                dpg.draw_line(p0, p1, thickness=size/12, color=colour, parent="edges")
+
 
 if __name__ == "__main__":
     temp = Board()

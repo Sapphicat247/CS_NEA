@@ -1,6 +1,7 @@
 from src import catan
 from src.ai import AI, AI_Random
 import colours
+import dearpygui.dearpygui as dpg
 
 import random
 
@@ -14,6 +15,16 @@ COLOUR_LIST = [
     colours.fg.WHITE +  colours.bg.RGB(0, 0, 0),
     ]
 
+# MARK: dpg stuff
+
+# create dpg widow
+dpg.create_context()
+
+# init viewport
+dpg.create_viewport(title='Custom Title', width=600, height=200)
+dpg.setup_dearpygui()
+dpg.show_viewport()
+
 # create a board
 board = catan.Board()
 
@@ -25,6 +36,11 @@ AI_list: list[AI] = [
     AI_Random(catan.Colour.BLUE),
     AI_Random(catan.Colour.WHITE),
 ]
+
+for ai in AI_list:
+    with dpg.window(label=ai.colour.name):
+        dpg.add_text(f"{ai.colour.name} player info")
+
 
 # MARK: set-up phaze
 # choose starting player
@@ -46,28 +62,36 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
         
         else: # can build settlement
             try:
+                if effect["road_pos"] not in board.verts[effect["settlement_pos"]].edges:
+                    raise catan.BuildingError("Not connected to correct settlement")
+                
                 board.place_road(catan.Colour(i+1), None, effect["road_pos"])
                 
             except catan.BuildingError as e:
                 print(f"error: invalid road placement: {e}")
                 board.delete_settlement(effect["settlement_pos"]) # dont keep settlement
+                # don't need to delete road as it's not placed if an error is raised
             
-            else: # can build road
+            else: # can build road!
                 AI_list[i].victory_points += 1
                 break
 
 print(f"{colours.fg.GREEN}setup took {attempts} attempts{colours.fg.END}")
 
 # MARK: main loop
-
 current_turn = 0
 
-while 1:
+# below replaces, start_dearpygui()
+while dpg.is_dearpygui_running():
+    # insert here any code you would like to run in the render loop
+    # you can manually stop by using stop_dearpygui()
+    #print("this will run every frame")
+
     current_AI = AI_list[current_turn]
     print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
     print("\trolling dice")
     dice = random.randint(1, 6) + random.randint(1, 6)
-    print(f"\trolled a {dice};", "moving robber" if dice == 7 else "distributing resources")
+    print(f"\trolled a {dice};", "moving robber" if dice == 7 else "distributing resources: ", end="")
     # filter for rolling a 7
     
     if dice == 7:
@@ -75,6 +99,7 @@ while 1:
         
     else:
         resources = board.get_resources(dice)
+        print(resources)
         for ai in AI_list:
             ai.hand += resources[ai.colour]
             ai.on_opponent_action(("dice roll", dice), board)
@@ -195,4 +220,8 @@ while 1:
     # increment turn counter
     current_turn += 1
     current_turn %= 4
-    break # only do 1 turn, for testing
+
+    board.draw()
+    dpg.render_dearpygui_frame()
+
+dpg.destroy_context()
