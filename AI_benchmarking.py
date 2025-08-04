@@ -1,5 +1,5 @@
 from src import catan
-from src.AI import AI
+from src.ai import AI, AI_Random
 import colours
 
 import random
@@ -20,10 +20,10 @@ board = catan.Board()
 # create AIs
 
 AI_list: list[AI] = [
-    AI(catan.Colour.RED),
-    AI(catan.Colour.ORANGE),
-    AI(catan.Colour.BLUE),
-    AI(catan.Colour.WHITE),
+    AI_Random(catan.Colour.RED),
+    AI_Random(catan.Colour.ORANGE),
+    AI_Random(catan.Colour.BLUE),
+    AI_Random(catan.Colour.WHITE),
 ]
 
 # MARK: set-up phaze
@@ -71,7 +71,7 @@ while 1:
     # filter for rolling a 7
     
     if dice == 7:
-        ...# TODO do robber stuff
+        ...# TODO do robber stuff & hand size limit
         
     else:
         resources = board.get_resources(dice)
