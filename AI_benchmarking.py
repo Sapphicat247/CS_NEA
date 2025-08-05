@@ -77,38 +77,21 @@ with dpg.window(label="graphs"):
 # MARK: set-up phaze
 # choose starting player
 
-attempts = 0
-
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
-        attempts += 1
-        print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement", end=" ")
-        effect = AI_list[i].place_starter_settlement(j, board) # get a move from the AI
-        print(f"at {effect}{colours.END}")
+        print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement and road at: ", end=" ")
+        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, board) # get a move from the AI
+        print(f"{settlement_pos} and {road_pos}{colours.END}")
         
-        try:
-            board.place_settlement(catan.Colour(i+1), None, effect["settlement_pos"], need_road=False)
-            
-        except catan.BuildingError as e:
-            print(f"error: invalid settlement placement: {e}")
-        
-        else: # can build settlement
-            try:
-                if effect["road_pos"] not in board.verts[effect["settlement_pos"]].edges:
-                    raise catan.BuildingError("Not connected to correct settlement")
-                
-                board.place_road(catan.Colour(i+1), None, effect["road_pos"])
-                
-            except catan.BuildingError as e:
-                print(f"error: invalid road placement: {e}")
-                board.delete_settlement(effect["settlement_pos"]) # dont keep settlement
-                # don't need to delete road as it's not placed if an error is raised
-            
-            else: # can build road!
-                AI_list[i].victory_points += 1
-                break
+        board.place_settlement(catan.Colour(i+1), None, settlement_pos, need_road=False)
 
-print(f"{colours.fg.GREEN}setup took {attempts} attempts{colours.fg.END}")
+        if road_pos not in board.verts[settlement_pos].edges:
+            raise catan.BuildingError("Not connected to correct settlement")
+        
+        board.place_road(catan.Colour(i+1), None, road_pos)
+            
+        AI_list[i].victory_points += 1
+        break
 
 def update():
     board.draw()

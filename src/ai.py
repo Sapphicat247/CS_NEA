@@ -37,13 +37,13 @@ class AI:
             catan.Colour.WHITE: colours.fg.WHITE,
         }[self.colour] + colours.bg.RGB(0, 0, 0)
     
-    def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> dict:
+    def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         match settlement_number:
             case "first":
-                return {"settlement_pos": 0, "road_pos": 0} # index of vertex, edge to place settlement, road
+                return 0, 0 # index of vertex, edge to place settlement, road
         
             case "second":
-                return {"settlement_pos": 0, "road_pos": 0} # index of vertex, edge to place settlement, road
+                return 0, 0 # index of vertex, edge to place settlement, road
             
             case _ as e:
                 raise ValueError(f"tried to place a strange starting settlement: {e}")
@@ -73,13 +73,13 @@ class AI_Random(AI):
     def __init__(self, colour: catan.Colour) -> None:
         super().__init__(colour)
     
-    def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> dict:
+    def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         match settlement_number:
             case "first":
-                return {"settlement_pos": random.randint(0, 53), "road_pos": random.randint(0, 71)} # index of vertex, edge to place settlement, road
+                return random.randint(0, 53), random.randint(0, 71) # index of vertex, edge to place settlement, road
         
             case "second":
-                return {"settlement_pos": random.randint(0, 53), "road_pos": random.randint(0, 71)} # index of vertex, edge to place settlement, road
+                return random.randint(0, 53), random.randint(0, 71) # index of vertex, edge to place settlement, road
             
             case _ as e:
                 raise ValueError(f"tried to place a strange starting settlement: {e}")
