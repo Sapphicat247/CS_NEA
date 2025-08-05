@@ -12,13 +12,20 @@ Action_options =  {
             "build city": 24, # position
             "build road": 68, # position
             "buy developmeant card": None,
-            "use developmeant card": catan.Development_card.KNIGHT, # card
+            "use developmeant card": (catan.Development_card.KNIGHT, {"pos": 6, "steal": catan.Colour.RED}), # card
             "trade": {"give": [catan.Resource.BRICK], "recieve": [catan.Resource.WOOD]}, # trade contents
             
             # used to tell players about in-game events. e.g. dice rolling. these are never sent by AIs
             "dice roll": 6, # value on dice (never 7)
             "player stole from player": (catan.Colour.BLUE, catan.Colour.ORANGE), # (blue) stole from (orange)
             }
+
+development_card_options= [
+    (catan.Development_card.KNIGHT, {"pos": 6, "steal": catan.Colour.RED}),
+    (catan.Development_card.MONOPOLY, {"resource": catan.Resource.WOOD}),
+    (catan.Development_card.ROAD_BUILDING, {"pos 1": 7, "pos 2": 8}),
+    (catan.Development_card.YEAR_OF_PLENTY, {"resource 1": catan.Resource.WOOD, "resource 2": catan.Resource.GRAIN})
+]
 
 class AI:
     # basic class to build other versions off

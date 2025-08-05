@@ -56,7 +56,8 @@ class Development_card(Enum):
     ROAD_BUILDING = 3
     MONOPOLY = 4
 
-Action = tuple[str, None | int | Development_card | dict[str, list[Resource]]]
+Action = tuple[str, None | int | tuple[Development_card, dict[str, int | Colour | Resource]] | dict[str, list[Resource]]]
+# TODO add support for extra options only sent to AIs as this only supports Recieving
 
 @dataclass
 class Port:

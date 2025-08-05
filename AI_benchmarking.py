@@ -168,8 +168,8 @@ while dpg.is_dearpygui_running():
                     ai.resources.remove(card)
         
         # robber
-        new_robber_pos, steal_target = current_AI.move_robber(board)
-        move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target))
+        new_robber_pos, steal_target = current_AI.move_robber(board) # get the robber movement
+        move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
         
     else:
         resources = board.get_resources(dice)
@@ -242,7 +242,8 @@ while dpg.is_dearpygui_running():
                 current_AI.resources.remove(catan.Resource.ORE)
                 current_AI.development_cards.append(board.development_cards.pop()) # give AI a development card
             
-            case ["use developmeant card", card] if type(card) == catan.Development_card:
+            case ["use developmeant card", opts] if type(opts) == tuple:
+                card, opts = opts
                 if card not in current_AI.development_cards:
                     raise ValueError("you can't use a card you don't have")
                 
@@ -251,15 +252,52 @@ while dpg.is_dearpygui_running():
                 # interprit card TODO
                 match card:
                     case catan.Development_card.KNIGHT:
-                        ...
+                        new_robber_pos, steal_target = current_AI.move_robber(board) # get the robber movement
+                        move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
+                        
                     case catan.Development_card.VICTORY_POINT:
-                        ...
+                        raise ValueError("you can't play victory point cards")
+                        
                     case catan.Development_card.YEAR_OF_PLENTY:
-                        ...
+                        resource_1 = opts["resource 1"]
+                        resource_2 = opts["resource 2"]
+                        
+                        if type(resource_1) != catan.Resource:
+                            raise ValueError(f"{resource_1} is not a resource")
+                        
+                        if type(resource_2) != catan.Resource:
+                            raise ValueError(f"{resource_2} is not a resource")
+                        
+                        current_AI.resources.append(resource_1)
+                        current_AI.resources.append(resource_2)
+                        
                     case catan.Development_card.ROAD_BUILDING:
-                        ...
+                        pos_1 = opts["pos 1"]
+                        pos_2 = opts["pos 1"]
+                        
+                        if type(pos_1) != int:
+                            raise ValueError(f"{pos_1} is not an int")
+                        
+                        if type(pos_2) != int:
+                            raise ValueError(f"{pos_2} is not an int")
+                        
+                        board.place_road(current_AI.colour, current_AI.resources, pos_1)
+                        board.place_road(current_AI.colour, current_AI.resources, pos_2)
+                        
                     case catan.Development_card.MONOPOLY:
-                        ...
+                        resource = opts["resource"]
+                        if type(resource) != catan.Resource:
+                            raise ValueError(f"{resource} is not a Resource")
+                        
+                        taken = 0
+                        for ai in AI_list:
+                            if ai != current_AI:
+                                while resource in ai.resources:
+                                    ai.resources.remove(resource)
+                                    taken += 1
+                                    
+                        current_AI.resources += [resource]*taken
+                        
                     case _:
                         raise ValueError(f"{card} is not a development card???")
             
