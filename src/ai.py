@@ -54,6 +54,7 @@ class AI:
         return self.resources[0:to_discard]
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
+        # called when you roll a 7 or play a knight card
         # pos, player to steal from
         return 0, catan.Colour.NONE
     

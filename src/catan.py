@@ -344,7 +344,7 @@ class Board:
             positions = [sum(gaps[:i+1]) + 42 + i for i in range(len(gaps))]
             
             for i in positions:
-                self.edges[i].port = Port(resources.pop(), Direction.NE) # MARK: TODO
+                self.edges[i].port = Port(resources.pop(), Direction.NE) # implement direction MARK: TODO
         
         else:
             # hexes
@@ -356,7 +356,7 @@ class Board:
             
             # ports
             for port in data["ports"]:
-                self.edges[port["position"]].port = Port(Resource[port["resource"]], Direction.NE) # MARK: TODO
+                self.edges[port["position"]].port = Port(Resource[port["resource"]], Direction.NE) # implement direction MARK: TODO
                 
     
     def encode(self) -> dict:

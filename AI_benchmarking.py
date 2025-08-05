@@ -37,6 +37,12 @@ AI_list: list[AI] = [
     AI_Random(catan.Colour.BLUE),
     AI_Random(catan.Colour.WHITE),
 ]
+def get_by_colour(col: catan.Colour) -> AI:
+    for i in AI_list:
+        if i.colour == col:
+            return i
+    
+    raise ValueError(f"no AI with colour: {col.name}")
 
 for ai in AI_list:
     with dpg.window(label=ai.colour.name):
@@ -121,16 +127,42 @@ def update():
         for development_card in catan.Development_card:
             dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{development_cards_counter[development_card]}")
 
+def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
+    if pos == board.get_robber_pos():
+        raise ValueError("you can't move the robber to the same space it is already on")
+    
+    if pos < 0 or pos > 18:
+        raise ValueError(f"hex: {pos} doesn't exist")
+    
+    # valid robber position
+    if steal_from == None:
+        board.set_robber_pos(pos) # always valid
+        return
+    
+    if steal_from == mover:
+        raise ValueError("you can't steal from yourself")
+    
+    adj_vert_owner_ais = [get_by_colour(board.verts[i].structure.owner) for i in board.hexes[pos].verts if board.verts[i].structure.owner != catan.Colour.NONE]
+    
+    if steal_from not in adj_vert_owner_ais:
+        raise ValueError(f"{steal_from.colour} doen't own any settlements or cities adjacent to the robber position")
+    
+    # valid steal config
+    if len(steal_from.resources) != 0: # only steal if they have >1 card
+        card = random.choice(steal_from.resources)
+        print(f"\t{mover.ansi_colour}{mover.colour}{colours.END} stole {card} from {steal_from.ansi_colour}{steal_from.colour}{colours.END}")
+        steal_from.resources.remove(card)
+        
+        mover.resources.append(card)
+    
+    board.set_robber_pos(pos)
+
 # MARK: main loop
 current_turn = 0
 
-# below replaces, start_dearpygui()
 while dpg.is_dearpygui_running():
-    # insert here any code you would like to run in the render loop
-    # you can manually stop by using stop_dearpygui()
-    #print("this will run every frame")
-
     current_AI = AI_list[current_turn]
+    
     print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
     print("\trolling dice")
     dice = random.randint(1, 6) + random.randint(1, 6)
@@ -156,37 +188,8 @@ while dpg.is_dearpygui_running():
                     # ai tried to discard cards it doesn't have
         
         # robber
-        new_robber_pos = 1000 # will error if this is ever used
-        while 1:
-            new_robber_pos, steal_target = AI_list[current_turn].move_robber(board)
-            if new_robber_pos != board.get_robber_pos():
-                # valid robber move
-                
-                if steal_target == None or steal_target == AI_list[current_turn].colour:
-                    break # don't steal
-                
-                # try to steal from someone
-                
-                adj_vert_owners = [board.verts[i].structure.owner for i in board.hexes[new_robber_pos].verts]
-                
-                if steal_target not in adj_vert_owners:
-                    continue # cant steal from a player not on the robbers hex
-                
-                # steal from target
-                for ai in AI_list:
-                    if ai.colour == steal_target:
-                        # found target
-                        if len(ai.resources) != 0: # only steal if they have >1 card
-                            card = random.choice(ai.resources)
-                            print(f"\t{AI_list[current_turn].ansi_colour}{AI_list[current_turn].colour}{colours.END} stole {card} from {ai.ansi_colour}{ai.colour}{colours.END}")
-                            ai.resources.remove(card)
-                            
-                            AI_list[current_turn].resources.append(card)
-                
-                break # sucesfully stole
-            
-        board.set_robber_pos(new_robber_pos) # move robber after steal in-case AI tries to steal from invalid player
-                
+        new_robber_pos, steal_target = current_AI.move_robber(board)
+        move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target))
         
     else:
         resources = board.get_resources(dice)
@@ -209,12 +212,7 @@ while dpg.is_dearpygui_running():
                 break
             
             case ["build settlement", pos] if type(pos) == int:
-                try:
-                    board.place_settlement(current_AI.colour, current_AI.resources, pos)
-                
-                except catan.BuildingError:
-                    # cant place settlement, due to game rules
-                    continue
+                board.place_settlement(current_AI.colour, current_AI.resources, pos)
                 
                 # can place settlement
                 current_AI.resources.remove(catan.Resource.WOOL)
@@ -229,12 +227,7 @@ while dpg.is_dearpygui_running():
                         ai.on_opponent_action((action, args), board)
             
             case ["build city", pos] if type(pos) == int:
-                try:
-                    board.place_city(current_AI.colour, current_AI.resources, pos)
-                
-                except catan.BuildingError:
-                    # cant place city, due to game rules
-                    continue
+                board.place_city(current_AI.colour, current_AI.resources, pos)
                 
                 # can place city
                 current_AI.resources.remove(catan.Resource.GRAIN)
@@ -250,12 +243,7 @@ while dpg.is_dearpygui_running():
                         ai.on_opponent_action((action, args), board)
                 
             case ["build road", pos] if type(pos) == int:
-                try:
-                    board.place_road(current_AI.colour, current_AI.resources, pos)
-                
-                except catan.BuildingError:
-                    # cant place road, due to game rules
-                    continue
+                board.place_road(current_AI.colour, current_AI.resources, pos)
                 
                 # can place road
                 current_AI.resources.remove(catan.Resource.WOOD)
