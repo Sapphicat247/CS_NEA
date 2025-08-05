@@ -169,7 +169,13 @@ while dpg.is_dearpygui_running():
         
         # robber
         new_robber_pos, steal_target = current_AI.move_robber(board) # get the robber movement
-        move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
+        
+        if steal_target == catan.Colour.NONE:
+            steal_target = None
+        else:
+            steal_target = get_by_colour(steal_target)
+            
+        move_robber_and_steal(new_robber_pos, current_AI, steal_target) # interprit the movement
         
     else:
         resources = board.get_resources(dice)

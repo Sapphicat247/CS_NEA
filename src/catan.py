@@ -395,6 +395,36 @@ class Board:
         
         return resources
 
+    def can_place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, need_road: bool = True) -> bool:
+        if hand != None and not can_afford(hand, Building.SETTLEMENT):
+            return False
+        
+        if position < 0 or position >= 54:
+            return False
+        
+        vert = self.verts[position]
+        
+        if vert.structure.owner != Colour.NONE: # building already exists there
+            return False
+        
+        adj_edges = [self.edges[i] for i in vert.edges if i != None]
+        for edge in adj_edges:
+            adj_vert = self.verts[[i for i in edge.verts if i != position][0]] # always 2 without condition
+            if adj_vert.structure.owner != Colour.NONE: # building exists 1 road away from target
+                return False
+        
+        if need_road:
+            for edge in adj_edges:
+                if edge.structure == Structure(owner, Building.ROAD): # road owned by this person
+                    return True
+            
+            return False # no roads found
+        
+        else:
+            return True
+        
+        
+    
     def place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, do_it: bool = True, need_road: bool = True) -> None:
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
             raise BuildingError("Cannot afford a settlement")

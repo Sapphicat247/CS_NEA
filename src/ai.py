@@ -81,26 +81,32 @@ class AI_Random(AI):
         super().__init__(colour)
     
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
-        match settlement_number:
-            case "first":
-                return random.randint(0, 53), random.randint(0, 71) # index of vertex, edge to place settlement, road
+        # get settlement position:
+        settlement_pos = random.randint(0, 53) # get random position
+        while not board.can_place_settlement(self.colour, None, settlement_pos, False): # if it's occupied, try again
+            settlement_pos = random.randint(0, 53) # get random position
         
-            case "second":
-                return random.randint(0, 53), random.randint(0, 71) # index of vertex, edge to place settlement, road
-            
-            case _ as e:
-                raise ValueError(f"tried to place a strange starting settlement: {e}")
+        # get road pos by choosing a random edges on the selectd vertex
+        road_pos = random.choice([i for i in board.verts[settlement_pos].edges if i != None])
+
+        return settlement_pos, road_pos
     
     def discard_half(self) -> list[catan.Resource]:
-        to_discard = len(self.resources)//2
-        discarded = []
-        for _ in range(to_discard):
-            discarded.append(random.choice(self.resources))
-        
-        return discarded
+        return random.sample(self.resources, len(self.resources)//2)
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
-        return random.randint(0, 18), random.choice([i for i in catan.Colour if i != self.colour])
+        
+        robber_pos = random.randint(0, 18)
+        while robber_pos == board.get_robber_pos():
+            robber_pos = random.randint(0, 18)
+            
+        adj_players = [board.verts[i].structure.owner for i in board.hexes[robber_pos].verts] # get all players adjacent to that hex
+        adj_players = [i for i in adj_players if i != catan.Colour.NONE and i != self.colour] # eliminate empty spots and yourself
+        
+        if adj_players == []:
+            adj_players = [catan.Colour.NONE]
+
+        return robber_pos, random.choice(adj_players)
     
     def do_action(self, board: catan.Board) -> catan.Action:
         return "end turn", None
