@@ -156,19 +156,16 @@ while dpg.is_dearpygui_running():
         # hand limit of 7
         for ai in AI_list:
             if len(ai.resources) > 7:
-                discarded = []
-                while 1:
-                    discarded = ai.discard_half()
-                    if len(discarded) != len(ai.resources)//2:
-                        continue # too many / too few cards chosen
-                    
-                    if catan.can_afford(ai.resources, discarded):
-                        for card in discarded:
-                            ai.resources.remove(card)
-                            
-                        break # ai has enough cards
-                    
-                    # ai tried to discard cards it doesn't have
+                
+                discarded = ai.discard_half()
+                if len(discarded) != len(ai.resources)//2:
+                    raise ValueError(f"{len(discarded)} is not half of your hand")
+                
+                if not catan.can_afford(ai.resources, discarded):
+                    raise ValueError("you can't discard cards you don't have")
+                
+                for card in discarded:
+                    ai.resources.remove(card)
         
         # robber
         new_robber_pos, steal_target = current_AI.move_robber(board)
@@ -238,7 +235,7 @@ while dpg.is_dearpygui_running():
                 
             case ["buy developmeant card", None]:
                 if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
-                    continue # can't afford it
+                    raise ValueError("you can't afford a developmeant card")
                 
                 current_AI.resources.remove(catan.Resource.WOOL)
                 current_AI.resources.remove(catan.Resource.GRAIN)
@@ -247,7 +244,7 @@ while dpg.is_dearpygui_running():
             
             case ["use developmeant card", card] if type(card) == catan.Development_card:
                 if card not in current_AI.development_cards:
-                    continue # can't use a card you don't have
+                    raise ValueError("you can't use a card you don't have")
                 
                 # has card
                 current_AI.development_cards.remove(card)
