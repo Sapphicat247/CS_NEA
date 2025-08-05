@@ -2,6 +2,7 @@ from src import catan
 from src.ai import AI, AI_Random
 import colours
 import dearpygui.dearpygui as dpg
+from collections import Counter
 
 import random
 
@@ -39,7 +40,32 @@ AI_list: list[AI] = [
 
 for ai in AI_list:
     with dpg.window(label=ai.colour.name):
-        dpg.add_text(f"{ai.colour.name} player info", tag=f"player_{ai.colour.name}")
+        
+        dpg.add_text(f"{ai.victory_points} VPs", tag=f"{ai.colour.name}_vps")
+        dpg.add_text(f"\nresources:")
+        with dpg.table(header_row=False):
+            dpg.add_table_column()
+            dpg.add_table_column()
+            
+            for resource in catan.Resource:
+                if resource != catan.Resource.DESERT:
+                    with dpg.table_row():
+                        dpg.add_text(resource.name)
+                        dpg.add_text("0", tag=f"{ai.colour.name}_{resource.name}_number")
+        
+        dpg.add_text(f"\nDevelopment cards:")
+        with dpg.table(header_row=False):
+            dpg.add_table_column()
+            dpg.add_table_column()
+            
+            for development_card in catan.Development_card:
+                
+                with dpg.table_row():
+                    dpg.add_text(development_card.name)
+                    dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
+    
+with dpg.window(label="graphs"):
+    pass
 
 
 # MARK: set-up phaze
@@ -78,6 +104,23 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
 
 print(f"{colours.fg.GREEN}setup took {attempts} attempts{colours.fg.END}")
 
+def update():
+    board.draw()
+    dpg.render_dearpygui_frame()
+    
+    for ai in AI_list:
+        resources_counter = Counter(ai.resources)
+        development_cards_counter = Counter(ai.development_cards)
+        
+        dpg.set_value(f"{ai.colour.name}_vps", f"{ai.victory_points} VPs")
+        
+        for resource in catan.Resource:
+            if resource != catan.Resource.DESERT:
+                dpg.set_value(f"{ai.colour.name}_{resource.name}_number", f"{resources_counter[resource]}")
+        
+        for development_card in catan.Development_card:
+            dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{development_cards_counter[development_card]}")
+
 # MARK: main loop
 current_turn = 0
 
@@ -91,21 +134,68 @@ while dpg.is_dearpygui_running():
     print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
     print("\trolling dice")
     dice = random.randint(1, 6) + random.randint(1, 6)
-    print(f"\trolled a {dice};", "moving robber" if dice == 7 else "distributing resources: ", end="")
+    print(f"\trolled a {dice};", "moving robber\n" if dice == 7 else "distributing resources: ", end="")
     # filter for rolling a 7
     
     if dice == 7:
-        ...# TODO do robber stuff & hand size limit
+        # hand limit of 7
+        for ai in AI_list:
+            if len(ai.resources) > 7:
+                discarded = []
+                while 1:
+                    discarded = ai.discard_half()
+                    if len(discarded) != len(ai.resources)//2:
+                        continue # too many / too few cards chosen
+                    
+                    if catan.can_afford(ai.resources, discarded):
+                        for card in discarded:
+                            ai.resources.remove(card)
+                            
+                        break # ai has enough cards
+                    
+                    # ai tried to discard cards it doesn't have
+        
+        # robber
+        new_robber_pos = 1000 # will error if this is ever used
+        while 1:
+            new_robber_pos, steal_target = AI_list[current_turn].move_robber(board)
+            if new_robber_pos != board.get_robber_pos():
+                # valid robber move
+                
+                if steal_target == None or steal_target == AI_list[current_turn].colour:
+                    break # don't steal
+                
+                # try to steal from someone
+                
+                adj_vert_owners = [board.verts[i].structure.owner for i in board.hexes[new_robber_pos].verts]
+                
+                if steal_target not in adj_vert_owners:
+                    continue # cant steal from a player not on the robbers hex
+                
+                # steal from target
+                for ai in AI_list:
+                    if ai.colour == steal_target:
+                        # found target
+                        if len(ai.resources) != 0: # only steal if they have >1 card
+                            card = random.choice(ai.resources)
+                            print(f"\t{AI_list[current_turn].ansi_colour}{AI_list[current_turn].colour}{colours.END} stole {card} from {ai.ansi_colour}{ai.colour}{colours.END}")
+                            ai.resources.remove(card)
+                            
+                            AI_list[current_turn].resources.append(card)
+                
+                break # sucesfully stole
+            
+        board.set_robber_pos(new_robber_pos) # move robber after steal in-case AI tries to steal from invalid player
+                
         
     else:
         resources = board.get_resources(dice)
         print(resources)
         for ai in AI_list:
-            ai.hand += resources[ai.colour]
+            ai.resources += resources[ai.colour]
             ai.on_opponent_action(("dice roll", dice), board)
     
-    board.draw()
-    dpg.render_dearpygui_frame()
+    update()
     
     while 1:
         print("\tdoing action")
@@ -120,17 +210,17 @@ while dpg.is_dearpygui_running():
             
             case ["build settlement", pos] if type(pos) == int:
                 try:
-                    board.place_settlement(current_AI.colour, current_AI.hand, pos)
+                    board.place_settlement(current_AI.colour, current_AI.resources, pos)
                 
                 except catan.BuildingError:
                     # cant place settlement, due to game rules
                     continue
                 
                 # can place settlement
-                current_AI.hand.remove(catan.Resource.WOOL)
-                current_AI.hand.remove(catan.Resource.WOOD)
-                current_AI.hand.remove(catan.Resource.BRICK)
-                current_AI.hand.remove(catan.Resource.GRAIN)
+                current_AI.resources.remove(catan.Resource.WOOL)
+                current_AI.resources.remove(catan.Resource.WOOD)
+                current_AI.resources.remove(catan.Resource.BRICK)
+                current_AI.resources.remove(catan.Resource.GRAIN)
 
                 current_AI.victory_points += 1
                 
@@ -140,18 +230,18 @@ while dpg.is_dearpygui_running():
             
             case ["build city", pos] if type(pos) == int:
                 try:
-                    board.place_city(current_AI.colour, current_AI.hand, pos)
+                    board.place_city(current_AI.colour, current_AI.resources, pos)
                 
                 except catan.BuildingError:
                     # cant place city, due to game rules
                     continue
                 
                 # can place city
-                current_AI.hand.remove(catan.Resource.GRAIN)
-                current_AI.hand.remove(catan.Resource.GRAIN)
-                current_AI.hand.remove(catan.Resource.ORE)
-                current_AI.hand.remove(catan.Resource.ORE)
-                current_AI.hand.remove(catan.Resource.ORE)
+                current_AI.resources.remove(catan.Resource.GRAIN)
+                current_AI.resources.remove(catan.Resource.GRAIN)
+                current_AI.resources.remove(catan.Resource.ORE)
+                current_AI.resources.remove(catan.Resource.ORE)
+                current_AI.resources.remove(catan.Resource.ORE)
 
                 current_AI.victory_points += 1
                 
@@ -161,35 +251,35 @@ while dpg.is_dearpygui_running():
                 
             case ["build road", pos] if type(pos) == int:
                 try:
-                    board.place_road(current_AI.colour, current_AI.hand, pos)
+                    board.place_road(current_AI.colour, current_AI.resources, pos)
                 
                 except catan.BuildingError:
                     # cant place road, due to game rules
                     continue
                 
                 # can place road
-                current_AI.hand.remove(catan.Resource.WOOD)
-                current_AI.hand.remove(catan.Resource.BRICK)
+                current_AI.resources.remove(catan.Resource.WOOD)
+                current_AI.resources.remove(catan.Resource.BRICK)
 
                 for ai in AI_list:
                     if ai != current_AI:
                         ai.on_opponent_action((action, args), board)
                 
             case ["buy developmeant card", None]:
-                if not catan.can_afford(current_AI.hand, catan.Building.DEVELOPMENT_CARD):
+                if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
                     continue # can't afford it
                 
-                current_AI.hand.remove(catan.Resource.WOOL)
-                current_AI.hand.remove(catan.Resource.GRAIN)
-                current_AI.hand.remove(catan.Resource.ORE)
-                current_AI.hand.append(board.development_cards.pop()) # give AI a development card
+                current_AI.resources.remove(catan.Resource.WOOL)
+                current_AI.resources.remove(catan.Resource.GRAIN)
+                current_AI.resources.remove(catan.Resource.ORE)
+                current_AI.development_cards.append(board.development_cards.pop()) # give AI a development card
             
             case ["use developmeant card", card] if type(card) == catan.Development_card:
-                if card not in current_AI.hand:
-                    continue
+                if card not in current_AI.development_cards:
+                    continue # can't use a card you don't have
                 
                 # has card
-                current_AI.hand.remove(card)
+                current_AI.development_cards.remove(card)
                 # interprit card TODO
                 match card:
                     case catan.Development_card.KNIGHT:
@@ -222,15 +312,13 @@ while dpg.is_dearpygui_running():
         
         # update info pannels for each player
         
-        dpg.render_dearpygui_frame()
+        update()
         
     print("\tturn over, 'passing the dice'")
     
     # increment turn counter
     current_turn += 1
     current_turn %= 4
-
-    board.draw()
-    dpg.render_dearpygui_frame()
+    update()
 
 dpg.destroy_context()

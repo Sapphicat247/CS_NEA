@@ -57,7 +57,6 @@ class Development_card(Enum):
     MONOPOLY = 4
 
 Action = tuple[str, None | int | Development_card | dict[str, list[Resource]]]
-Hand = list[Resource | Development_card]
 
 @dataclass
 class Port:
@@ -97,7 +96,7 @@ class Hex:
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
 
-def can_afford(hand: Hand, building: Building) -> bool:
+def can_afford(hand: list[Resource], building: Building | list[Resource]) -> bool:
     match building:
         case Building.SETTLEMENT:
             needed = (Resource.BRICK, Resource.WOOD, Resource.GRAIN, Resource.WOOL)
@@ -111,8 +110,11 @@ def can_afford(hand: Hand, building: Building) -> bool:
         case Building.DEVELOPMENT_CARD:
             needed = (Resource.ORE, Resource.GRAIN, Resource.WOOL)
         
-        case _: # shoud never happen
-            raise ValueError(f"{building} is not of type Building???")
+        case _ as list_of_resources if type(list_of_resources) == list:
+            needed = tuple(list_of_resources)
+        
+        case _:
+            raise ValueError(f"{building} is not of type Building; it is of type {type(building)}???")            
         
     hand_counter = Counter(hand)
     needed_counter = Counter(needed)
@@ -375,7 +377,7 @@ class Board:
         }
         
         for hex in self.hexes:
-            if hex.diceValue == dice_value:
+            if hex.diceValue == dice_value and not hex.hasRobber:
                 # resource producing hex
                 for vert_i in hex.verts:
                     if vert_i != None:
@@ -392,7 +394,7 @@ class Board:
         
         return resources
 
-    def place_settlement(self, owner: Colour, hand: Hand | None, position: int, do_it: bool = True, need_road: bool = True) -> None:
+    def place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, do_it: bool = True, need_road: bool = True) -> None:
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
             raise BuildingError("Cannot afford a settlement")
         
@@ -419,7 +421,7 @@ class Board:
             if do_it: self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
             return
     
-    def place_city(self, owner: Colour, hand: Hand | None, position: int, do_it: bool = True) -> None:
+    def place_city(self, owner: Colour, hand: list[Resource] | None, position: int, do_it: bool = True) -> None:
         if hand != None and not can_afford(hand, Building.CITY):
             raise BuildingError("Cannot afford a city")
         
@@ -430,7 +432,7 @@ class Board:
         else:
             raise BuildingError("Cities must be placed on one of your own settlements")
     
-    def place_road(self, owner: Colour, hand: Hand | None, position: int, do_it: bool = True) -> None:
+    def place_road(self, owner: Colour, hand: list[Resource] | None, position: int, do_it: bool = True) -> None:
         if hand != None and not can_afford(hand, Building.ROAD):
             raise BuildingError("Cannot afford a road")
         
@@ -463,6 +465,23 @@ class Board:
         
     def delete_road(self, position: int):
         self.edges[position].structure = Structure()
+    
+    def get_robber_pos(self) -> int:
+        for i, hex in enumerate(self.hexes):
+            if hex.hasRobber:
+                return i
+        
+        raise Exception("Robber was not found anywhere on the board (this should never happen)")
+    
+    def set_robber_pos(self, pos: int):
+        
+        if pos < 0 or pos > 18:
+            raise ValueError("you must choose a hex number between 0 and 18 inclusive")
+        
+        for hex in self.hexes:
+            hex.hasRobber = False
+        
+        self.hexes[pos].hasRobber = True
     
     def draw(self):
         dpg.delete_item("hexes", children_only=True) # clear
@@ -498,7 +517,7 @@ class Board:
             if hex.hasRobber:
                 col = (61, 68, 79, 255)
             else:
-                col = (232, 232, 181, 255)
+                col = (232, 232, 181, 255 if hex.resource != Resource.DESERT else 0)
                 
             dpg.draw_circle((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), size/4, fill=col, parent="hexes", color=(0,0,0,0))
                 
