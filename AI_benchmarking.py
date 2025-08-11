@@ -3,8 +3,9 @@ from src.ai import AI, AI_Random
 import colours
 import dearpygui.dearpygui as dpg
 from collections import Counter
-
 import random
+
+DEBUG = False
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
@@ -22,7 +23,7 @@ COLOUR_LIST = [
 dpg.create_context()
 
 # init viewport
-dpg.create_viewport(title='Custom Title', width=600, height=200)
+dpg.create_viewport(title='Custom Title', width=1920, height=1080)
 dpg.setup_dearpygui()
 dpg.show_viewport()
 
@@ -45,31 +46,39 @@ def get_by_colour(col: catan.Colour) -> AI:
     raise ValueError(f"no AI with colour: {col.name}")
 
 for ai in AI_list:
-    with dpg.window(label=ai.colour.name):
-        
+    with dpg.window(label=ai.colour.name, width=300, height=400):
         dpg.add_text(f"{ai.victory_points} VPs", tag=f"{ai.colour.name}_vps")
-        dpg.add_text(f"\nresources:")
-        with dpg.table(header_row=False):
-            dpg.add_table_column()
-            dpg.add_table_column()
-            
-            for resource in catan.Resource:
-                if resource != catan.Resource.DESERT:
-                    with dpg.table_row():
-                        dpg.add_text(resource.name)
-                        dpg.add_text("0", tag=f"{ai.colour.name}_{resource.name}_number")
         
-        dpg.add_text(f"\nDevelopment cards:")
-        with dpg.table(header_row=False):
-            dpg.add_table_column()
-            dpg.add_table_column()
-            
-            for development_card in catan.Development_card:
+        with dpg.tab_bar():
+            with dpg.tab(label = "hand"):
+                dpg.add_text(f"\nresources:")
+                with dpg.table(header_row=False):
+                    dpg.add_table_column()
+                    dpg.add_table_column()
+                    
+                    for resource in catan.Resource:
+                        if resource != catan.Resource.DESERT:
+                            with dpg.table_row():
+                                dpg.add_text(resource.name)
+                                dpg.add_text("0", tag=f"{ai.colour.name}_{resource.name}_number")
                 
-                with dpg.table_row():
-                    dpg.add_text(development_card.name)
-                    dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
-    
+                dpg.add_text(f"\nDevelopment cards:")
+                with dpg.table(header_row=False):
+                    dpg.add_table_column()
+                    dpg.add_table_column()
+                    
+                    for development_card in catan.Development_card:
+                        
+                        with dpg.table_row():
+                            dpg.add_text(development_card.name)
+                            dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
+            
+            with dpg.tab(label="other"):
+                ai.gui_setup()
+                        
+
+while 1: pass
+
 with dpg.window(label="graphs"):
     pass
 
@@ -93,7 +102,7 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
         AI_list[i].victory_points += 1
         break
 
-def update():
+def update() -> bool:
     board.draw()
     dpg.render_dearpygui_frame()
     
@@ -109,6 +118,11 @@ def update():
         
         for development_card in catan.Development_card:
             dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{development_cards_counter[development_card]}")
+        
+        if ai.victory_points >= 10:
+            return True
+    
+    return False
 
 def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
     if pos == board.get_robber_pos():
@@ -147,9 +161,9 @@ while dpg.is_dearpygui_running():
     current_AI = AI_list[current_turn]
     
     print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
-    print("\trolling dice")
+    if DEBUG: print("\trolling dice")
     dice = random.randint(1, 6) + random.randint(1, 6)
-    print(f"\trolled a {dice};", "moving robber\n" if dice == 7 else "distributing resources: ", end="")
+    print(f"\trolled a {dice};", "moving robber" if dice == 7 else "distributing resources")
     # filter for rolling a 7
     
     if dice == 7:
@@ -179,18 +193,19 @@ while dpg.is_dearpygui_running():
         
     else:
         resources = board.get_resources(dice)
-        print(resources)
+        if DEBUG: print(resources)
         for ai in AI_list:
             ai.resources += resources[ai.colour]
             ai.on_opponent_action(("dice roll", dice), board)
     
-    update()
+    if update():
+        break
     
     while 1:
-        print("\tdoing action")
+        if DEBUG: print("\tdoing action")
         action, args = current_AI.do_action(board)
         
-        print(f"\tinterpriting action: {action}")
+        if DEBUG: print(f"\tinterpriting action: {action}")
         
         # try to do action
         match action, args:
@@ -246,7 +261,10 @@ while dpg.is_dearpygui_running():
                 current_AI.resources.remove(catan.Resource.WOOL)
                 current_AI.resources.remove(catan.Resource.GRAIN)
                 current_AI.resources.remove(catan.Resource.ORE)
-                current_AI.development_cards.append(board.development_cards.pop()) # give AI a development card
+                try:
+                    current_AI.development_cards.append(board.development_cards.pop()) # give AI a development card
+                except IndexError:
+                    print("no development cards left")
             
             case ["use developmeant card", opts] if type(opts) == tuple:
                 card, opts = opts
@@ -324,13 +342,22 @@ while dpg.is_dearpygui_running():
         
         # update info pannels for each player
         
-        update()
+        if update():
+            break
         
-    print("\tturn over, 'passing the dice'")
+    if DEBUG: print("\tturn over, 'passing the dice'")
     
     # increment turn counter
     current_turn += 1
     current_turn %= 4
+    if update():
+        break
+
+for ai in AI_list:
+    if ai.victory_points >= 10:
+        print(f"{ai.ansi_colour}{ai.colour.name} WON!{colours.END}")
+
+while dpg.is_dearpygui_running():
     update()
 
 dpg.destroy_context()

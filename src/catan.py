@@ -397,20 +397,24 @@ class Board:
 
     def can_place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, need_road: bool = True) -> bool:
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
+            # BuildingError("Cannot afford a settlement")
             return False
         
         if position < 0 or position >= 54:
+            # BuildingError("Cannot build a settlement over another building")
             return False
         
         vert = self.verts[position]
         
         if vert.structure.owner != Colour.NONE: # building already exists there
+            # BuildingError("Cannot build a settlement that close to another one")
             return False
         
         adj_edges = [self.edges[i] for i in vert.edges if i != None]
         for edge in adj_edges:
             adj_vert = self.verts[[i for i in edge.verts if i != position][0]] # always 2 without condition
             if adj_vert.structure.owner != Colour.NONE: # building exists 1 road away from target
+                # BuildingError("Settlements can only be built on a vertex along one of your roads")
                 return False
         
         if need_road:
@@ -418,14 +422,16 @@ class Board:
                 if edge.structure == Structure(owner, Building.ROAD): # road owned by this person
                     return True
             
+            # BuildingError("Cannot afford a city")
             return False # no roads found
         
         else:
             return True
         
-        
+    def can_place_road(self, owner: Colour, hand: list[Resource] | None, position: int, need_road: bool = True) -> bool:
+        ...
     
-    def place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, do_it: bool = True, need_road: bool = True) -> None:
+    def place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, need_road: bool = True) -> None:
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
             raise BuildingError("Cannot afford a settlement")
         
@@ -443,27 +449,27 @@ class Board:
         if need_road:
             for edge in adj_edges:
                 if edge.structure == Structure(owner, Building.ROAD): # road owned by this person
-                    if do_it: self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
+                    self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
                     return
             
             raise BuildingError("Settlements can only be built on a vertex along one of your roads")
         
         else:
-            if do_it: self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
+            self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
             return
     
-    def place_city(self, owner: Colour, hand: list[Resource] | None, position: int, do_it: bool = True) -> None:
+    def place_city(self, owner: Colour, hand: list[Resource] | None, position: int) -> None:
         if hand != None and not can_afford(hand, Building.CITY):
             raise BuildingError("Cannot afford a city")
         
         # upgrade to players own settlement
         if self.verts[position].structure == Structure(owner, Building.SETTLEMENT): # settlement owned by the same person
-            if do_it: self.verts[position].structure = Structure(owner, Building.CITY)
+            self.verts[position].structure = Structure(owner, Building.CITY)
         
         else:
             raise BuildingError("Cities must be placed on one of your own settlements")
     
-    def place_road(self, owner: Colour, hand: list[Resource] | None, position: int, do_it: bool = True) -> None:
+    def place_road(self, owner: Colour, hand: list[Resource] | None, position: int) -> None:
         if hand != None and not can_afford(hand, Building.ROAD):
             raise BuildingError("Cannot afford a road")
         
@@ -477,13 +483,13 @@ class Board:
         
         for vert in adj_verts:
             if vert.structure.owner == owner: # city or settlement owned by this player adjacent to road target
-                if do_it: self.edges[position].structure = Structure(owner, Building.ROAD)
+                self.edges[position].structure = Structure(owner, Building.ROAD)
                 return
             
             adj_edges = [self.edges[i] for i in vert.edges if i != None]
             for edge in adj_edges:
                 if edge.structure == Structure(owner, Building.ROAD) and vert.structure.owner == Colour.NONE: # road owned by this person AND not interupted by settlement / city
-                    if do_it: self.edges[position].structure = Structure(owner, Building.ROAD)
+                    self.edges[position].structure = Structure(owner, Building.ROAD)
                     return
 
         raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
@@ -492,7 +498,7 @@ class Board:
         self.verts[position].structure = Structure()
     
     def delete_city(self, position: int):
-        self.verts[position].structure = Structure()
+        self.verts[position].structure = Structure(self.verts[position].structure.owner, Building.SETTLEMENT)
         
     def delete_road(self, position: int):
         self.edges[position].structure = Structure()
