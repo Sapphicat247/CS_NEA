@@ -75,12 +75,14 @@ for ai in AI_list:
             
             with dpg.tab(label="other"):
                 ai.gui_setup()
-                        
 
-while 1: pass
-
+idk = True
+def next_turn():
+    global idk
+    idk = True
+              
 with dpg.window(label="graphs"):
-    pass
+    dpg.add_button(label="next turn", callback=next_turn)
 
 
 # MARK: set-up phaze
@@ -158,6 +160,10 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
 current_turn = 0
 
 while dpg.is_dearpygui_running():
+    while not idk:
+        update()
+    
+    idk = False
     current_AI = AI_list[current_turn]
     
     print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
@@ -205,7 +211,7 @@ while dpg.is_dearpygui_running():
         if DEBUG: print("\tdoing action")
         action, args = current_AI.do_action(board)
         
-        if DEBUG: print(f"\tinterpriting action: {action}")
+        print(f"\t{action}")
         
         # try to do action
         match action, args:

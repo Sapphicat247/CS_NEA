@@ -149,3 +149,7 @@ class AI_Random(AI):
     def on_opponent_action(self, action: catan.Action, board: catan.Board) -> None: # gives the action e.g. dice roll, and the state of the board after the action was completed
         # can be called on own turn, when another player accepts a trade deal
         ...
+    
+    def gui_setup(self):
+        # called at the start, can be used to display custom fields
+        pass
