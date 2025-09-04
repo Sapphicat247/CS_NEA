@@ -76,13 +76,14 @@ for ai in AI_list:
             with dpg.tab(label="other"):
                 ai.gui_setup()
 
-idk = True
+ready_for_turn = True
 def next_turn():
-    global idk
-    idk = True
+    global ready_for_turn
+    ready_for_turn = True
               
 with dpg.window(label="graphs"):
     dpg.add_button(label="next turn", callback=next_turn)
+    auto_run = dpg.add_checkbox(label="auto")
 
 
 # MARK: set-up phaze
@@ -160,10 +161,10 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
 current_turn = 0
 
 while dpg.is_dearpygui_running():
-    while not idk:
+    while not ready_for_turn and dpg.get_value(auto_run) == False:
         update()
     
-    idk = False
+    ready_for_turn = False
     current_AI = AI_list[current_turn]
     
     print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
@@ -202,6 +203,7 @@ while dpg.is_dearpygui_running():
         if DEBUG: print(resources)
         for ai in AI_list:
             ai.resources += resources[ai.colour]
+        
             ai.on_opponent_action(("dice roll", dice), board)
     
     if update():

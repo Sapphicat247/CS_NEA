@@ -32,13 +32,18 @@ development_card_options= [
 class AI:
     # basic class to build other versions off
     # AIs are not trusted to make legal moves, however the AI will have to avoid infinite loops by always attempting an illegal move
-    victory_points: int = 0
-    resources: list[catan.Resource] = []
-    development_cards: list[catan.Development_card] = []
+    victory_points: int
+    resources: list[catan.Resource]
+    development_cards: list[catan.Development_card]
     colour: catan.Colour
+    ansi_colour: str
     
     def __init__(self, colour: catan.Colour) -> None:
+        self.victory_points = 0
+        self.resources = []
+        self.development_cards = []
         self.colour = colour
+        
         self.ansi_colour = {
             catan.Colour.RED: colours.fg.RED,
             catan.Colour.ORANGE: colours.fg.ORANGE,
