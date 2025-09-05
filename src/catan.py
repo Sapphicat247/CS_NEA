@@ -395,43 +395,45 @@ class Board:
         
         return resources
 
-    def can_place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, need_road: bool = True) -> bool:
-        if hand != None and not can_afford(hand, Building.SETTLEMENT):
-            # BuildingError("Cannot afford a settlement")
-            return False
-        
-        if position < 0 or position >= 54:
-            # BuildingError("Cannot build a settlement over another building")
-            return False
-        
-        vert = self.verts[position]
-        
-        if vert.structure.owner != Colour.NONE: # building already exists there
-            # BuildingError("Cannot build a settlement that close to another one")
-            return False
-        
-        adj_edges = [self.edges[i] for i in vert.edges if i != None]
-        for edge in adj_edges:
-            adj_vert = self.verts[[i for i in edge.verts if i != position][0]] # always 2 without condition
-            if adj_vert.structure.owner != Colour.NONE: # building exists 1 road away from target
-                # BuildingError("Settlements can only be built on a vertex along one of your roads")
-                return False
-        
-        if need_road:
-            for edge in adj_edges:
-                if edge.structure == Structure(owner, Building.ROAD): # road owned by this person
+    def can_place(self, building: Building, owner: Colour, hand: list[Resource] | None, position: int, /, *, need_road: bool = True) -> bool:
+        match building:
+            case Building.ROAD:
+                try:
+                    self.place_road(owner, hand, position)
+                except BuildingError:
+                    # can't place road
+                    return False
+                else:
+                    self.delete_road(position)
                     return True
-            
-            # BuildingError("Cannot afford a city")
-            return False # no roads found
-        
-        else:
-            return True
-        
-    def can_place_road(self, owner: Colour, hand: list[Resource] | None, position: int, need_road: bool = True) -> bool:
-        ...
+                
+            case Building.SETTLEMENT:
+                try:
+                    self.place_settlement(owner, hand, position, need_road=need_road)
+                except BuildingError:
+                    # can't place road
+                    return False
+                else:
+                    self.delete_settlement(position)
+                    return True
+                
+            case Building.CITY:
+                try:
+                    self.place_city(owner, hand, position)
+                except BuildingError:
+                    # can't place road
+                    return False
+                else:
+                    self.delete_city(position)
+                    return True
+                
+            case Building.DEVELOPMENT_CARD:
+                raise ValueError("you can't place a development card")
+            case _:
+                raise ValueError(f"{building} is not of type: Building")
     
-    def place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, need_road: bool = True) -> None:
+    
+    def place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, /, *, need_road: bool = True) -> None:
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
             raise BuildingError("Cannot afford a settlement")
         
@@ -498,6 +500,7 @@ class Board:
         self.verts[position].structure = Structure()
     
     def delete_city(self, position: int):
+        """downgrades city to settlement"""
         self.verts[position].structure = Structure(self.verts[position].structure.owner, Building.SETTLEMENT)
         
     def delete_road(self, position: int):

@@ -94,7 +94,7 @@ class AI_Random(AI):
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         # get settlement position:
         settlement_pos = random.randint(0, 53) # get random position
-        while not board.can_place_settlement(self.colour, None, settlement_pos, False): # if it's occupied, try again
+        while not board.can_place(catan.Building.SETTLEMENT, self.colour, None, settlement_pos, need_road=False): # if it's occupied, try again
             settlement_pos = random.randint(0, 53) # get random position
         
         # get road pos by choosing a random edges on the selectd vertex
@@ -119,17 +119,11 @@ class AI_Random(AI):
 
         return robber_pos, random.choice(adj_players)
     
-    def __get_position_options(self, building: catan.Building, board: catan.Board) -> list[int]:
+    def __get_position_options(self, building: catan.Building, board: catan.Board) -> list[int] | set[int]:
         match building:
-            case catan.Building.CITY:
-                return [i for i, vert in enumerate(board.verts) if vert.structure.owner == self.colour and vert.structure.type == catan.Building.SETTLEMENT]
-
-            case catan.Building.SETTLEMENT:
-                return [i for i, vert in enumerate(board.verts) if board.can_place_settlement(self.colour, None, i)]
-
-            case catan.Building.ROAD:
-                return [i for i, edge in enumerate(board.edges) if edge.structure.owner == catan.Colour.NONE and any([board.verts[vert_I].structure.owner == self.colour or any([board.edges[edge_I].structure.owner == self.colour for edge_I in board.verts[vert_I].edges if edge_I != None and edge_I != i]) for vert_I in edge.verts])]
-
+            case catan.Building.CITY | catan.Building.SETTLEMENT | catan.Building.ROAD:
+                return {i for i in range(len(board.verts)) if board.can_place(building, self.colour, self.resources, i)}
+            
             case catan.Building.DEVELOPMENT_CARD:
                 raise ValueError("you can't 'place' a development card")
             
@@ -139,13 +133,12 @@ class AI_Random(AI):
     
     def do_action(self, board: catan.Board) -> catan.Action:
         # try to build something if you can afford it
-        for building in (catan.Building.CITY, catan.Building.SETTLEMENT, catan.Building.ROAD, catan.Building.DEVELOPMENT_CARD):
-            if catan.can_afford(self.resources, building):
-                if building == catan.Building.DEVELOPMENT_CARD and len(board.development_cards) > 0:
-                    return "buy developmeant card", None
-                
-                if building != catan.Building.DEVELOPMENT_CARD and (options := self.__get_position_options(building, board)) != []:
-                    return f"build {building.name.lower()}", random.choice(options)
+        for building in (catan.Building.CITY, catan.Building.SETTLEMENT, catan.Building.ROAD):
+            if options := self.__get_position_options(building, board):
+                return f"build {building.name.lower()}", random.choice(list(options))
+        
+        if catan.can_afford(self.resources, catan.Building.DEVELOPMENT_CARD) and len(board.development_cards) > 0:
+            return f"buy developmeant card", None
             
         # try to use a development card if you have one
         
