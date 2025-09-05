@@ -4,6 +4,7 @@ import colours
 import dearpygui.dearpygui as dpg
 from collections import Counter
 import random
+from copy import deepcopy
 
 DEBUG = False
 
@@ -92,7 +93,7 @@ with dpg.window(label="graphs"):
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
         print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement and road at: ", end=" ")
-        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, board) # get a move from the AI
+        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, deepcopy(board)) # get a move from the AI
         print(f"{settlement_pos} and {road_pos}{colours.END}")
         
         board.place_settlement(catan.Colour(i+1), None, settlement_pos, need_road=False)
@@ -189,7 +190,7 @@ while dpg.is_dearpygui_running():
                     ai.resources.remove(card)
         
         # robber
-        new_robber_pos, steal_target = current_AI.move_robber(board) # get the robber movement
+        new_robber_pos, steal_target = current_AI.move_robber(deepcopy(board)) # get the robber movement
         
         if steal_target == catan.Colour.NONE:
             steal_target = None
@@ -204,14 +205,14 @@ while dpg.is_dearpygui_running():
         for ai in AI_list:
             ai.resources += resources[ai.colour]
         
-            ai.on_opponent_action(("dice roll", dice), board)
+            ai.on_opponent_action(("dice roll", dice), deepcopy(board))
     
     if update():
         break
     
     while 1:
         if DEBUG: print("\tdoing action")
-        action, args = current_AI.do_action(board)
+        action, args = current_AI.do_action(deepcopy(board))
         
         print(f"\t{action}")
         
@@ -233,7 +234,7 @@ while dpg.is_dearpygui_running():
                 
                 for ai in AI_list:
                     if ai != current_AI:
-                        ai.on_opponent_action((action, args), board)
+                        ai.on_opponent_action((action, args), deepcopy(board))
             
             case ["build city", pos] if type(pos) == int:
                 board.place_city(current_AI.colour, current_AI.resources, pos)
@@ -249,7 +250,7 @@ while dpg.is_dearpygui_running():
                 
                 for ai in AI_list:
                     if ai != current_AI:
-                        ai.on_opponent_action((action, args), board)
+                        ai.on_opponent_action((action, args), deepcopy(board))
                 
             case ["build road", pos] if type(pos) == int:
                 board.place_road(current_AI.colour, current_AI.resources, pos)
@@ -260,7 +261,7 @@ while dpg.is_dearpygui_running():
 
                 for ai in AI_list:
                     if ai != current_AI:
-                        ai.on_opponent_action((action, args), board)
+                        ai.on_opponent_action((action, args), deepcopy(board))
                 
             case ["buy developmeant card", None]:
                 if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
@@ -284,7 +285,7 @@ while dpg.is_dearpygui_running():
                 # interprit card TODO
                 match card:
                     case catan.Development_card.KNIGHT:
-                        new_robber_pos, steal_target = current_AI.move_robber(board) # get the robber movement
+                        new_robber_pos, steal_target = current_AI.move_robber(deepcopy(board)) # get the robber movement
                         move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
                         
                     case catan.Development_card.VICTORY_POINT:
@@ -344,7 +345,7 @@ while dpg.is_dearpygui_running():
         
         for ai in AI_list:
             if ai != current_AI:
-                ai.on_opponent_action((action, args), board)
+                ai.on_opponent_action((action, args), deepcopy(board))
         
         board.draw()
         

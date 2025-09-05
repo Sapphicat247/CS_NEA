@@ -4,6 +4,7 @@ import random, math
 from pprint import pprint
 from collections import Counter
 import dearpygui.dearpygui as dpg
+from copy import deepcopy
 
 class BuildingError(Exception):
     def __init__(self, message):            
@@ -601,6 +602,9 @@ class Board:
                     
                 dpg.draw_line(p0, p1, thickness=size/12, color=colour, parent="edges")
 
+def safe_copy(board: Board):
+    new_board = deepcopy(board)
+    
 
 if __name__ == "__main__":
     temp = Board()
