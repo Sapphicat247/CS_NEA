@@ -61,6 +61,28 @@ class Development_card(Enum):
 Action = tuple[str, None | int | tuple[Development_card, dict[str, int | Colour | Resource]] | dict[str, list[Resource]]]
 # TODO add support for extra options only sent to AIs as this only supports Recieving
 
+class Event(Enum):
+    END_TURN = 0 # None
+    BUILD_SETTLEMENT = 10 # int: location
+    BUILD_CITY = 11 # int: location
+    BUILD_ROAD = 12 # int: location
+    TRADE = 20 # tuple: (giving, recieving)
+    BUY_DEV_CARD = 30 # None
+    
+    USE_KNIGHT = 31 # None
+    USE_YEAR_OF_PLENTY = 32 # tuple[resource, resource]
+    USE_ROAD_BUILDING = 33 # tuple[location, location]
+    USE_MONOPOLY = 34 # resource
+    
+    DICE_ROLL = 51 # int: number
+    P_STOLE_FROM_P = 52 # tuple: (giver, stealer)
+    P_DISCARDED = 53 # tuple: (person, number of cards)
+
+@dataclass
+class Action2:
+    event: Event
+    arg: None | int | Resource | tuple[list[Resource], list[Resource]] | tuple[Resource, Resource] | tuple[Colour, Colour] | tuple[Colour, int]
+
 @dataclass
 class Port:
     resource: Resource
