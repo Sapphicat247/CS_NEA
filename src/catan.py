@@ -56,6 +56,7 @@ class Development_card(Enum):
     YEAR_OF_PLENTY = 2
     ROAD_BUILDING = 3
     MONOPOLY = 4
+    NONE = 5
 
 Action = tuple[str, None | int | tuple[Development_card, dict[str, int | Colour | Resource]] | dict[str, list[Resource]]]
 # TODO add support for extra options only sent to AIs as this only supports Recieving
@@ -438,6 +439,9 @@ class Board:
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
             raise BuildingError("Cannot afford a settlement")
         
+        if sum(1 for i in self.verts if i.structure == Structure(owner, Building.SETTLEMENT)) >= 5:
+            raise BuildingError("You have used all of you settlements")
+        
         vert = self.verts[position]
                 
         if vert.structure.owner != Colour.NONE: # building already exists there
@@ -465,6 +469,9 @@ class Board:
         if hand != None and not can_afford(hand, Building.CITY):
             raise BuildingError("Cannot afford a city")
         
+        if sum(1 for i in self.verts if i.structure == Structure(owner, Building.CITY)) >= 4:
+            raise BuildingError("You have used all of you cities")
+        
         # upgrade to players own settlement
         if self.verts[position].structure == Structure(owner, Building.SETTLEMENT): # settlement owned by the same person
             self.verts[position].structure = Structure(owner, Building.CITY)
@@ -475,6 +482,9 @@ class Board:
     def place_road(self, owner: Colour, hand: list[Resource] | None, position: int) -> None:
         if hand != None and not can_afford(hand, Building.ROAD):
             raise BuildingError("Cannot afford a road")
+        
+        if sum(1 for i in self.edges if i.structure == Structure(owner, Building.ROAD)) >= 15:
+            raise BuildingError("You have used all of you roads")
         
         road = self.edges[position]
         
@@ -604,6 +614,7 @@ class Board:
 
 def safe_copy(board: Board):
     new_board = deepcopy(board)
+    new_board.development_cards = [Development_card.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
     
 
 if __name__ == "__main__":
