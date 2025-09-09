@@ -360,43 +360,8 @@ class Board:
             # ports
             for port in data["ports"]:
                 self.edges[port["position"]].port = Port(Resource[port["resource"]], Direction.NE) # implement direction MARK: TODO
-                
-    
-    def encode(self) -> dict:
-        return {
-            "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.hexes],
-            "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.edges) if edge.port != None]
-        }
-    
-    def __str__(self) -> str:
-        return str(self.encode())
-    
-    def get_resources(self, dice_value: int) -> dict[Colour, list[Resource]]:
-        resources = {
-            Colour.RED: [],
-            Colour.ORANGE: [],
-            Colour.BLUE: [],
-            Colour.WHITE: [],
-        }
-        
-        for hex in self.hexes:
-            if hex.diceValue == dice_value and not hex.hasRobber:
-                # resource producing hex
-                for vert_i in hex.verts:
-                    if vert_i != None:
-                        # vertex that could have settlement
-                        vert = self.verts[vert_i]
-                        if vert.structure.type == Building.SETTLEMENT:
-                            # settlement
-                            resources[vert.structure.owner].append(hex.resource)
-                            
-                        elif vert.structure.type == Building.CITY:
-                            # city
-                            resources[vert.structure.owner].append(hex.resource)
-                            resources[vert.structure.owner].append(hex.resource)
-        
-        return resources
 
+    # MARK: Placement
     def can_place(self, building: Building, owner: Colour, hand: list[Resource] | None, position: int, /, *, need_road: bool = True) -> bool:
         match building:
             case Building.ROAD:
@@ -524,6 +489,34 @@ class Board:
         
         raise Exception("Robber was not found anywhere on the board (this should never happen)")
     
+    # MARK: Game concepts
+    
+    def get_resources(self, dice_value: int) -> dict[Colour, list[Resource]]:
+        resources = {
+            Colour.RED: [],
+            Colour.ORANGE: [],
+            Colour.BLUE: [],
+            Colour.WHITE: [],
+        }
+        
+        for hex in self.hexes:
+            if hex.diceValue == dice_value and not hex.hasRobber:
+                # resource producing hex
+                for vert_i in hex.verts:
+                    if vert_i != None:
+                        # vertex that could have settlement
+                        vert = self.verts[vert_i]
+                        if vert.structure.type == Building.SETTLEMENT:
+                            # settlement
+                            resources[vert.structure.owner].append(hex.resource)
+                            
+                        elif vert.structure.type == Building.CITY:
+                            # city
+                            resources[vert.structure.owner].append(hex.resource)
+                            resources[vert.structure.owner].append(hex.resource)
+        
+        return resources
+    
     def set_robber_pos(self, pos: int):
         
         if pos < 0 or pos > 18:
@@ -533,6 +526,16 @@ class Board:
             hex.hasRobber = False
         
         self.hexes[pos].hasRobber = True
+    
+    # MARK: Display
+    def encode(self) -> dict:
+        return {
+            "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.hexes],
+            "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.edges) if edge.port != None]
+        }
+    
+    def __str__(self) -> str:
+        return str(self.encode())
     
     def draw(self):
         dpg.delete_item("hexes", children_only=True) # clear
