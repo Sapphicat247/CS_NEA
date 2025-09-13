@@ -4,7 +4,6 @@ import colours
 import dearpygui.dearpygui as dpg
 from collections import Counter
 import random
-from copy import deepcopy
 
 DEBUG = False
 
@@ -24,10 +23,10 @@ COLOUR_LIST = [
 dpg.create_context()
 
 # init viewport
-dpg.create_viewport(title='Custom Title', width=1920, height=1080)
+dpg.create_viewport(title='Catan', width=1920, height=1080)
 dpg.setup_dearpygui()
 dpg.show_viewport()
-
+dpg.toggle_viewport_fullscreen()
 # create a board
 board = catan.Board()
 
@@ -46,9 +45,11 @@ def get_by_colour(col: catan.Colour) -> AI:
     
     raise ValueError(f"no AI with colour: {col.name}")
 
-for ai in AI_list:
-    with dpg.window(label=ai.colour.name, width=300, height=400):
-        dpg.add_text(f"{ai.victory_points} VPs", tag=f"{ai.colour.name}_vps")
+pos_list = [(0,0), (0,1080-400-39), (1920-300-16, 0), (1920-300-16, 1080-400-39)]
+
+for ai_index, ai in enumerate(AI_list):
+    with dpg.window(label=ai.colour.name, width=300, height=400, pos=pos_list[ai_index], ):
+        dpg.add_text(f"{ai.victory_points} ({0}) VPs", tag=f"{ai.colour.name}_vps")
         
         with dpg.tab_bar():
             with dpg.tab(label = "hand"):
@@ -82,7 +83,7 @@ def next_turn():
     global ready_for_turn
     ready_for_turn = True
               
-with dpg.window(label="graphs"):
+with dpg.window(label="graphs", pos= (400+39, 0)):
     dpg.add_button(label="next turn", callback=next_turn)
     auto_run = dpg.add_checkbox(label="auto")
 
@@ -93,7 +94,7 @@ with dpg.window(label="graphs"):
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
         print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement and road at: ", end=" ")
-        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, deepcopy(board)) # get a move from the AI
+        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, catan.safe_copy(board)) # get a move from the AI
         print(f"{settlement_pos} and {road_pos}{colours.END}")
         
         board.place_settlement(catan.Colour(i+1), None, settlement_pos, need_road=False)
@@ -114,7 +115,8 @@ def update() -> bool:
         resources_counter = Counter(ai.resources)
         development_cards_counter = Counter(ai.development_cards)
         
-        dpg.set_value(f"{ai.colour.name}_vps", f"{ai.victory_points} VPs")
+        real_vps = ai.victory_points + sum([1 for i in ai.development_cards if i == catan.Development_card.VICTORY_POINT])
+        dpg.set_value(f"{ai.colour.name}_vps", f"{ai.victory_points} ({real_vps}) VPs")
         
         for resource in catan.Resource:
             if resource != catan.Resource.DESERT:
@@ -190,7 +192,7 @@ while dpg.is_dearpygui_running():
                     ai.resources.remove(card)
         
         # robber
-        new_robber_pos, steal_target = current_AI.move_robber(deepcopy(board)) # get the robber movement
+        new_robber_pos, steal_target = current_AI.move_robber(catan.safe_copy(board)) # get the robber movement
         
         if steal_target == catan.Colour.NONE:
             steal_target = None
@@ -205,14 +207,14 @@ while dpg.is_dearpygui_running():
         for ai in AI_list:
             ai.resources += resources[ai.colour]
         
-            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), deepcopy(board))
+            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), catan.safe_copy(board))
     
     if update():
         break
     
     while 1:
         if DEBUG: print("\tdoing action")
-        action = current_AI.do_action(deepcopy(board))
+        action = current_AI.do_action(catan.safe_copy(board))
         
         print(f"\t{action}")
         
@@ -264,7 +266,7 @@ while dpg.is_dearpygui_running():
                     print("no development cards left")
             
             case [catan.Event.USE_KNIGHT, None]:
-                new_robber_pos, steal_target = current_AI.move_robber(deepcopy(board)) # get the robber movement
+                new_robber_pos, steal_target = current_AI.move_robber(catan.safe_copy(board)) # get the robber movement
                 move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
             
             case [catan.Event.USE_YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
@@ -299,7 +301,7 @@ while dpg.is_dearpygui_running():
         
         for ai in AI_list:
             if ai != current_AI:
-                ai.on_opponent_action(action, deepcopy(board))
+                ai.on_opponent_action(action, catan.safe_copy(board))
         
         board.draw()
         

@@ -640,6 +640,8 @@ def safe_copy(board: Board):
     new_board = deepcopy(board)
     new_board.development_cards = [Development_card.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
     
+    return new_board
+    
 
 if __name__ == "__main__":
     temp = Board()
