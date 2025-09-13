@@ -39,6 +39,7 @@ AI_list: list[AI] = [
     AI_Random(catan.Colour.WHITE),
 ]
 def get_by_colour(col: catan.Colour) -> AI:
+    """returns the AI with this colour"""
     for i in AI_list:
         if i.colour == col:
             return i
@@ -108,6 +109,7 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
         break
 
 def update() -> bool:
+    """update GUI"""
     board.draw()
     dpg.render_dearpygui_frame()
     

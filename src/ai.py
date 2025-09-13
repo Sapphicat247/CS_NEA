@@ -3,32 +3,6 @@ import random
 import colours
 import dearpygui.dearpygui as dpg
 
-# 54 verts
-# 72 edges
-# 19 hexes
-
-Action_options =  {
-            "end turn": None,
-            "build settlement": 40, # position
-            "build city": 24, # position
-            "build road": 68, # position
-            "buy developmeant card": None,
-            "use developmeant card": (catan.Development_card.KNIGHT, {"pos": 6, "steal": catan.Colour.RED}), # card
-            "trade": {"give": [catan.Resource.BRICK], "recieve": [catan.Resource.WOOD]}, # trade contents
-            
-            # used to tell players about in-game events. e.g. dice rolling. these are never sent by AIs
-            "dice roll": 6, # value on dice (never 7)
-            "player stole from player": (catan.Colour.BLUE, catan.Colour.ORANGE), # (blue) stole from (orange)
-            "player discarded": {"player": catan.Colour.RED, "resources": [catan.Resource.BRICK, catan.Resource.ORE]}
-            }
-
-development_card_options= [
-    (catan.Development_card.KNIGHT, {"pos": 6, "steal": catan.Colour.RED}),
-    (catan.Development_card.MONOPOLY, {"resource": catan.Resource.WOOD}),
-    (catan.Development_card.ROAD_BUILDING, {"pos 1": 7, "pos 2": 8}),
-    (catan.Development_card.YEAR_OF_PLENTY, {"resource 1": catan.Resource.WOOD, "resource 2": catan.Resource.GRAIN})
-]
-
 class AI:
     # basic class to build other versions off
     # AIs are not trusted to make legal moves, however the AI will have to avoid infinite loops by always attempting an illegal move

@@ -7,11 +7,13 @@ import dearpygui.dearpygui as dpg
 from copy import deepcopy
 
 class BuildingError(Exception):
+    """error used for when an AI tries to place a building in an invalid location"""
     def __init__(self, message):            
         # Call the base class constructor with the parameters it needs
         super().__init__(message)
 
 class Direction(Flag):
+    """used to render sea ports correctly"""
     N  = 2**0
     NE = 2**1
     E  = 2**2
@@ -24,6 +26,8 @@ class Direction(Flag):
 # MARK: board contents
 
 class Colour(Enum):
+    """used to keep track of who ownes what,\n
+    component of the actual board game"""
     NONE = 0 # only used as placeholder
     RED = 1
     ORANGE = 2
@@ -31,6 +35,7 @@ class Colour(Enum):
     WHITE = 4
 
 class Building(Enum):
+    """a building"""
     EMPTY = 0 # used when e.g. a vertex has no settlement / city
     SETTLEMENT = 1
     CITY = 2
@@ -39,10 +44,12 @@ class Building(Enum):
 
 @dataclass
 class Structure:
+    """a building with an owner"""
     owner: Colour = Colour.NONE
     type: Building = Building.EMPTY
 
 class Resource(Enum):
+    """used for cards and recording the type of each hex"""
     DESERT = 0 # also used for 3:1 trade at ports
     WOOD = 1
     WOOL = 2
@@ -51,6 +58,7 @@ class Resource(Enum):
     GRAIN = 5
 
 class Development_card(Enum):
+    """component of the actual board game"""
     KNIGHT = 0
     VICTORY_POINT = 1
     YEAR_OF_PLENTY = 2
@@ -59,6 +67,8 @@ class Development_card(Enum):
     NONE = 5
 
 class Event(Enum):
+    """used so the AIs can communicate with the game,\n
+    each event is a basic thing an ai can do"""
     END_TURN = 0 # None
     BUILD_SETTLEMENT = 10 # int: location
     BUILD_CITY = 11 # int: location
@@ -77,11 +87,14 @@ class Event(Enum):
 
 @dataclass
 class Action:
+    """holds information as well as the actual thing the AI wants to do,\n
+    or for information to be sent back to the AI"""
     event: Event
     arg: None | int | Resource | tuple[list[Resource], list[Resource]] | tuple[Resource, Resource] | tuple[int, int] | tuple[Colour, Colour] | tuple[Colour, int]
 
 @dataclass
 class Port:
+    """component of the actual board game"""
     resource: Resource
     direction: Direction # for drawing on screen
 
@@ -91,6 +104,8 @@ class Port:
 
 @dataclass
 class Vertex:
+    """the intersection between 3 edges (or 2 on the coast),\n
+    where you build settlements and cities"""
     structure: Structure = field(default_factory=Structure)
     #                                                                     0   1   2   3   4   5
     edges: list[int | None] = field(default_factory = lambda: [None]*6) # N   NE  SE  S   SW  NW
@@ -99,6 +114,7 @@ class Vertex:
 
 @dataclass
 class Edge:
+    """where you build roads"""
     structure: Structure = field(default_factory=Structure)
     port: Port | None = None
     
@@ -106,6 +122,7 @@ class Edge:
 
 @dataclass
 class Hex:
+    """produces resources and interacts with the robber"""
     resource: Resource = Resource.DESERT
     diceValue: int = 0
     hasRobber: bool = False
@@ -116,9 +133,11 @@ class Hex:
     relative_pos: tuple[float, float] = (0, 0)
 
 def rotate(l: list, n: int) -> list:
+    """moves the first item of a list to the end {n} times"""
     return l[n:] + l[:n]
 
 def can_afford(hand: list[Resource], building: Building | list[Resource]) -> bool:
+    """given a hand of cards, can you afford a certain building"""
     match building:
         case Building.SETTLEMENT:
             needed = (Resource.BRICK, Resource.WOOD, Resource.GRAIN, Resource.WOOL)
@@ -144,6 +163,7 @@ def can_afford(hand: list[Resource], building: Building | list[Resource]) -> boo
     return all(needed_counter[element] <= hand_counter[element] for element in needed_counter)
 
 class Board:
+    """hold all information about the current game"""
     hexes: list[Hex] = []
     edges: list[Edge] = []
     verts: list[Vertex] = []
@@ -382,6 +402,8 @@ class Board:
 
     # MARK: Placement
     def can_place(self, building: Building, owner: Colour, hand: list[Resource] | None, position: int, /, *, need_road: bool = True) -> bool:
+        """test if a certain AI can build a building,\n
+        this takes into account the hand of cards and the current board"""
         match building:
             case Building.ROAD:
                 try:
@@ -420,6 +442,7 @@ class Board:
     
     
     def place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, /, *, need_road: bool = True) -> None:
+        """places settlement, throws BuildingError if it is not possible"""
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
             raise BuildingError("Cannot afford a settlement")
         
@@ -450,6 +473,7 @@ class Board:
             return
     
     def place_city(self, owner: Colour, hand: list[Resource] | None, position: int) -> None:
+        """places city, throws BuildingError if it is not possible"""
         if hand != None and not can_afford(hand, Building.CITY):
             raise BuildingError("Cannot afford a city")
         
@@ -464,6 +488,7 @@ class Board:
             raise BuildingError("Cities must be placed on one of your own settlements")
     
     def place_road(self, owner: Colour, hand: list[Resource] | None, position: int) -> None:
+        """places road, throws BuildingError if it is not possible"""
         if hand != None and not can_afford(hand, Building.ROAD):
             raise BuildingError("Cannot afford a road")
         
@@ -492,6 +517,7 @@ class Board:
         raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
     
     def delete_settlement(self, position: int):
+        """removes settlement"""
         self.verts[position].structure = Structure()
     
     def delete_city(self, position: int):
@@ -499,9 +525,11 @@ class Board:
         self.verts[position].structure = Structure(self.verts[position].structure.owner, Building.SETTLEMENT)
         
     def delete_road(self, position: int):
+        """removes road"""
         self.edges[position].structure = Structure()
     
     def get_robber_pos(self) -> int:
+        """returns the hex the robber is currently on"""
         for i, hex in enumerate(self.hexes):
             if hex.hasRobber:
                 return i
@@ -511,6 +539,7 @@ class Board:
     # MARK: Game concepts
     
     def get_resources(self, dice_value: int) -> dict[Colour, list[Resource]]:
+        """works out which AI would recieve what resources, given a dice roll"""
         resources = {
             Colour.RED: [],
             Colour.ORANGE: [],
@@ -537,9 +566,12 @@ class Board:
         return resources
     
     def set_robber_pos(self, pos: int):
-        
+        """places the robber on a hex"""
         if pos < 0 or pos > 18:
             raise ValueError("you must choose a hex number between 0 and 18 inclusive")
+        
+        if pos == self.get_robber_pos():
+            raise ValueError("you can't put the robber on the same hex it started on")
         
         for hex in self.hexes:
             hex.hasRobber = False
@@ -548,6 +580,8 @@ class Board:
     
     # MARK: Display
     def encode(self) -> dict:
+        """produces a dictionary representation of the board,\n
+        ignores anything built on it"""
         return {
             "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.hexes],
             "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.edges) if edge.port != None]
@@ -557,6 +591,7 @@ class Board:
         return str(self.encode())
     
     def draw(self):
+        """updates GUI"""
         dpg.delete_item("hexes", children_only=True) # clear
         dpg.delete_item("edges", children_only=True) # clear
         dpg.delete_item("verts", children_only=True) # clear
@@ -637,6 +672,7 @@ class Board:
 # MARK: misc functions
 
 def safe_copy(board: Board):
+    """hide info the AIs are not allowed to see"""
     new_board = deepcopy(board)
     new_board.development_cards = [Development_card.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
     
