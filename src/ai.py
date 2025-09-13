@@ -73,7 +73,7 @@ class AI:
         return 0, catan.Colour.NONE
     
     def do_action(self, board: catan.Board) -> catan.Action:
-        return "end turn", None
+        return catan.Action(catan.Event.END_TURN, None)
     
     def on_opponent_action(self, action: catan.Action, board: catan.Board) -> None: # gives the action e.g. dice roll, and the state of the board after the action was completed
         # can be called on own turn, when another player accepts a trade deal
@@ -133,16 +133,23 @@ class AI_Random(AI):
     
     def do_action(self, board: catan.Board) -> catan.Action:
         # try to build something if you can afford it
-        for building in (catan.Building.CITY, catan.Building.SETTLEMENT, catan.Building.ROAD):
-            if options := self.__get_position_options(building, board):
-                return f"build {building.name.lower()}", random.choice(list(options))
+        
+        if options := self.__get_position_options(catan.Building.CITY, board):
+            return catan.Action(catan.Event.BUILD_CITY, random.choice(list(options)))
+        
+        if options := self.__get_position_options(catan.Building.SETTLEMENT, board):
+            return catan.Action(catan.Event.BUILD_SETTLEMENT, random.choice(list(options)))
+        
+        if options := self.__get_position_options(catan.Building.ROAD, board):
+            return catan.Action(catan.Event.BUILD_ROAD, random.choice(list(options)))
+        
         
         if catan.can_afford(self.resources, catan.Building.DEVELOPMENT_CARD) and len(board.development_cards) > 0:
-            return f"buy developmeant card", None
+            return catan.Action(catan.Event.BUY_DEV_CARD, None)
             
         # try to use a development card if you have one
         
-        return "end turn", None
+        return catan.Action(catan.Event.END_TURN, None)
     
     def on_opponent_action(self, action: catan.Action, board: catan.Board) -> None: # gives the action e.g. dice roll, and the state of the board after the action was completed
         # can be called on own turn, when another player accepts a trade deal

@@ -205,23 +205,23 @@ while dpg.is_dearpygui_running():
         for ai in AI_list:
             ai.resources += resources[ai.colour]
         
-            ai.on_opponent_action(("dice roll", dice), deepcopy(board))
+            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), deepcopy(board))
     
     if update():
         break
     
     while 1:
         if DEBUG: print("\tdoing action")
-        action, args = current_AI.do_action(deepcopy(board))
+        action = current_AI.do_action(deepcopy(board))
         
         print(f"\t{action}")
         
         # try to do action
-        match action, args:
-            case ["end turn", None]:
+        match action.event, action.arg:
+            case [catan.Event.END_TURN, None]:
                 break
             
-            case ["build settlement", pos] if type(pos) == int:
+            case [catan.Event.BUILD_SETTLEMENT, pos] if type(pos) == int:
                 board.place_settlement(current_AI.colour, current_AI.resources, pos)
                 
                 # can place settlement
@@ -231,12 +231,8 @@ while dpg.is_dearpygui_running():
                 current_AI.resources.remove(catan.Resource.GRAIN)
 
                 current_AI.victory_points += 1
-                
-                for ai in AI_list:
-                    if ai != current_AI:
-                        ai.on_opponent_action((action, args), deepcopy(board))
             
-            case ["build city", pos] if type(pos) == int:
+            case [catan.Event.BUILD_CITY, pos] if type(pos) == int:
                 board.place_city(current_AI.colour, current_AI.resources, pos)
                 
                 # can place city
@@ -248,22 +244,14 @@ while dpg.is_dearpygui_running():
 
                 current_AI.victory_points += 1
                 
-                for ai in AI_list:
-                    if ai != current_AI:
-                        ai.on_opponent_action((action, args), deepcopy(board))
-                
-            case ["build road", pos] if type(pos) == int:
+            case [catan.Event.BUILD_ROAD, pos] if type(pos) == int:
                 board.place_road(current_AI.colour, current_AI.resources, pos)
                 
                 # can place road
                 current_AI.resources.remove(catan.Resource.WOOD)
                 current_AI.resources.remove(catan.Resource.BRICK)
-
-                for ai in AI_list:
-                    if ai != current_AI:
-                        ai.on_opponent_action((action, args), deepcopy(board))
                 
-            case ["buy developmeant card", None]:
+            case [catan.Event.BUY_DEV_CARD, None]:
                 if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
                     raise ValueError("you can't afford a developmeant card")
                 
@@ -275,77 +263,43 @@ while dpg.is_dearpygui_running():
                 except IndexError:
                     print("no development cards left")
             
-            case ["use developmeant card", opts] if type(opts) == tuple:
-                card, opts = opts
-                if card not in current_AI.development_cards:
-                    raise ValueError("you can't use a card you don't have")
+            case [catan.Event.USE_KNIGHT, None]:
+                new_robber_pos, steal_target = current_AI.move_robber(deepcopy(board)) # get the robber movement
+                move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
+            
+            case [catan.Event.USE_YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
+                if type(resource_1) != catan.Resource or type(resource_2) != catan.Resource:
+                    raise ValueError(f"{resource_1} or {resource_2} is not a Resource")
                 
-                # has card
-                current_AI.development_cards.remove(card)
-                # interprit card TODO
-                match card:
-                    case catan.Development_card.KNIGHT:
-                        new_robber_pos, steal_target = current_AI.move_robber(deepcopy(board)) # get the robber movement
-                        move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
-                        
-                    case catan.Development_card.VICTORY_POINT:
-                        raise ValueError("you can't play victory point cards")
-                        
-                    case catan.Development_card.YEAR_OF_PLENTY:
-                        resource_1 = opts["resource 1"]
-                        resource_2 = opts["resource 2"]
-                        
-                        if type(resource_1) != catan.Resource:
-                            raise ValueError(f"{resource_1} is not a resource")
-                        
-                        if type(resource_2) != catan.Resource:
-                            raise ValueError(f"{resource_2} is not a resource")
-                        
-                        current_AI.resources.append(resource_1)
-                        current_AI.resources.append(resource_2)
-                        
-                    case catan.Development_card.ROAD_BUILDING:
-                        pos_1 = opts["pos 1"]
-                        pos_2 = opts["pos 1"]
-                        
-                        if type(pos_1) != int:
-                            raise ValueError(f"{pos_1} is not an int")
-                        
-                        if type(pos_2) != int:
-                            raise ValueError(f"{pos_2} is not an int")
-                        
-                        board.place_road(current_AI.colour, current_AI.resources, pos_1)
-                        board.place_road(current_AI.colour, current_AI.resources, pos_2)
-                        
-                    case catan.Development_card.MONOPOLY:
-                        resource = opts["resource"]
-                        if type(resource) != catan.Resource:
-                            raise ValueError(f"{resource} is not a Resource")
-                        
-                        taken = 0
-                        for ai in AI_list:
-                            if ai != current_AI:
-                                while resource in ai.resources:
-                                    ai.resources.remove(resource)
-                                    taken += 1
-                                    
-                        current_AI.resources += [resource]*taken
-                        
-                    case _:
-                        raise ValueError(f"{card} is not a development card???")
+                current_AI.resources.append(resource_1)
+                current_AI.resources.append(resource_2)
+                
+            case [catan.Event.USE_ROAD_BUILDING, [pos_1, pos_2]] if type(pos_1) == int and type(pos_2) == int:
+                board.place_road(current_AI.colour, current_AI.resources, pos_1)
+                board.place_road(current_AI.colour, current_AI.resources, pos_2)
+                
+            case [catan.Event.USE_MONOPOLY, resource] if type(resource) == catan.Resource:
+                taken = 0
+                for ai in AI_list:
+                    if ai != current_AI:
+                        while resource in ai.resources:
+                            ai.resources.remove(resource)
+                            taken += 1
+                            
+                current_AI.resources += [resource]*taken
             
             case "trade":
                 ...
             
             case _:
-                ...
+                raise Exception(f"could not interprit {action} as an action")
 
         # if it gets to here, action was succesfull.
         # so notify players and update gui
         
         for ai in AI_list:
             if ai != current_AI:
-                ai.on_opponent_action((action, args), deepcopy(board))
+                ai.on_opponent_action(action, deepcopy(board))
         
         board.draw()
         

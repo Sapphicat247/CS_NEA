@@ -58,9 +58,6 @@ class Development_card(Enum):
     MONOPOLY = 4
     NONE = 5
 
-Action = tuple[str, None | int | tuple[Development_card, dict[str, int | Colour | Resource]] | dict[str, list[Resource]]]
-# TODO add support for extra options only sent to AIs as this only supports Recieving
-
 class Event(Enum):
     END_TURN = 0 # None
     BUILD_SETTLEMENT = 10 # int: location
@@ -79,9 +76,9 @@ class Event(Enum):
     P_DISCARDED = 53 # tuple: (person, number of cards)
 
 @dataclass
-class Action2:
+class Action:
     event: Event
-    arg: None | int | Resource | tuple[list[Resource], list[Resource]] | tuple[Resource, Resource] | tuple[Colour, Colour] | tuple[Colour, int]
+    arg: None | int | Resource | tuple[list[Resource], list[Resource]] | tuple[Resource, Resource] | tuple[int, int] | tuple[Colour, Colour] | tuple[Colour, int]
 
 @dataclass
 class Port:
@@ -636,6 +633,8 @@ class Board:
                 p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
                     
                 dpg.draw_line(p0, p1, thickness=size/12, color=colour, parent="edges")
+
+# MARK: misc functions
 
 def safe_copy(board: Board):
     new_board = deepcopy(board)
