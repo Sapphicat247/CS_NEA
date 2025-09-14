@@ -2,6 +2,7 @@ from src import catan
 import random
 import colours
 import dearpygui.dearpygui as dpg
+import copy
 
 class AI:
     # basic class to build other versions off
@@ -107,7 +108,6 @@ class AI_Random(AI):
     
     def do_action(self, board: catan.Board) -> catan.Action:
         # try to build something if you can afford it
-        
         if options := self.__get_position_options(catan.Building.CITY, board):
             return catan.Action(catan.Event.BUILD_CITY, random.choice(list(options)))
         
@@ -116,7 +116,6 @@ class AI_Random(AI):
         
         if options := self.__get_position_options(catan.Building.ROAD, board):
             return catan.Action(catan.Event.BUILD_ROAD, random.choice(list(options)))
-        
         
         if catan.can_afford(self.resources, catan.Building.DEVELOPMENT_CARD) and len(board.development_cards) > 0:
             return catan.Action(catan.Event.BUY_DEV_CARD, None)

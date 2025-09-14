@@ -164,10 +164,10 @@ def can_afford(hand: list[Resource], building: Building | list[Resource]) -> boo
 
 class Board:
     """hold all information about the current game"""
-    hexes: list[Hex] = []
-    edges: list[Edge] = []
-    verts: list[Vertex] = []
-    development_cards: list[Development_card] = []
+    hexes: list[Hex]
+    edges: list[Edge]
+    verts: list[Vertex]
+    development_cards: list[Development_card]
     
     def __init__(self, data: dict | None = None) -> None:
         # set up dpg viewport =========================================================================================================
@@ -182,6 +182,10 @@ class Board:
                 pass
             with dpg.draw_layer(tag="debug"):
                 pass
+        
+        self.hexes = []
+        self.edges = []
+        self.verts = []
         
         self.development_cards = [Development_card.KNIGHT]*14 + [Development_card.VICTORY_POINT]*5 + [Development_card.YEAR_OF_PLENTY]*2 + [Development_card.ROAD_BUILDING]*2 + [Development_card.MONOPOLY]*2
         random.shuffle(self.development_cards)
