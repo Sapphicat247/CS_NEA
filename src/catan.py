@@ -1,10 +1,14 @@
+# data type imports
 from enum import Enum, Flag
 from dataclasses import dataclass, field
+
+# function imports
 import random, math
-from pprint import pprint
-from collections import Counter
-import dearpygui.dearpygui as dpg
 from copy import deepcopy
+
+# GUI
+import dearpygui.dearpygui as dpg
+
 
 class BuildingError(Exception):
     """error used for when an AI tries to place a building in an invalid location"""
@@ -59,12 +63,13 @@ class Resource(Enum):
 
 class Development_card(Enum):
     """component of the actual board game"""
-    KNIGHT = 0
-    VICTORY_POINT = 1
-    YEAR_OF_PLENTY = 2
-    ROAD_BUILDING = 3
-    MONOPOLY = 4
-    NONE = 5
+    NONE = 0
+    KNIGHT = 1
+    VICTORY_POINT = 2
+    YEAR_OF_PLENTY = 3
+    ROAD_BUILDING = 4
+    MONOPOLY = 5
+    
 
 class Event(Enum):
     """used so the AIs can communicate with the game,\n
@@ -117,6 +122,7 @@ class Edge:
     """where you build roads"""
     structure: Structure = field(default_factory=Structure)
     port: Port | None = None
+    visited: bool = False # used for finding length of longest road
     
     verts: list[int] = field(default_factory = lambda: [-1]*2) # N S | NE SW | NW SE
 
@@ -136,31 +142,33 @@ def rotate(l: list, n: int) -> list:
     """moves the first item of a list to the end {n} times"""
     return l[n:] + l[:n]
 
-def can_afford(hand: list[Resource], building: Building | list[Resource]) -> bool:
+def can_afford(hand: dict[Resource, int], building: Building | dict[Resource, int]) -> bool:
     """given a hand of cards, can you afford a certain building"""
     match building:
         case Building.SETTLEMENT:
-            needed = (Resource.BRICK, Resource.WOOD, Resource.GRAIN, Resource.WOOL)
+            return all([hand[Resource.BRICK] >= 1,
+                        hand[Resource.WOOD]  >= 1,
+                        hand[Resource.WOOL]  >= 1,
+                        hand[Resource.GRAIN] >= 1,])
             
         case Building.CITY:
-            needed = (Resource.ORE, Resource.ORE, Resource.ORE, Resource.GRAIN, Resource.GRAIN)
+            return all([hand[Resource.ORE]   >= 3,
+                        hand[Resource.GRAIN] >= 2,])
             
         case Building.ROAD:
-            needed = (Resource.BRICK, Resource.WOOD)
+            return all([hand[Resource.BRICK] >= 1,
+                        hand[Resource.WOOD]  >= 1,])
         
         case Building.DEVELOPMENT_CARD:
-            needed = (Resource.ORE, Resource.GRAIN, Resource.WOOL)
+            return all([hand[Resource.ORE]  >= 1,
+                        hand[Resource.WOOL]  >= 1,
+                        hand[Resource.GRAIN] >= 1,])
         
-        case _ as list_of_resources if type(list_of_resources) == list:
-            needed = tuple(list_of_resources)
+        case _ as resources if type(resources) == dict:
+            return all(hand[k] > resources[k] for k in resources.keys())
         
         case _:
-            raise ValueError(f"{building} is not of type Building; it is of type {type(building)}???")            
-        
-    hand_counter = Counter(hand)
-    needed_counter = Counter(needed)
-        
-    return all(needed_counter[element] <= hand_counter[element] for element in needed_counter)
+            raise ValueError(f"incorrect type: {building}")
 
 class Board:
     """hold all information about the current game"""
@@ -405,7 +413,7 @@ class Board:
                 self.edges[port["position"]].port = Port(Resource[port["resource"]], Direction.NE) # implement direction MARK: TODO
 
     # MARK: Placement
-    def can_place(self, building: Building, owner: Colour, hand: list[Resource] | None, position: int, /, *, need_road: bool = True) -> bool:
+    def can_place(self, building: Building, owner: Colour, hand: dict[Resource, int] | None, position: int, /, *, need_road: bool = True) -> bool:
         """test if a certain AI can build a building,\n
         this takes into account the hand of cards and the current board"""
         match building:
@@ -445,7 +453,7 @@ class Board:
                 raise ValueError(f"{building} is not of type: Building")
     
     
-    def place_settlement(self, owner: Colour, hand: list[Resource] | None, position: int, /, *, need_road: bool = True) -> None:
+    def place_settlement(self, owner: Colour, hand: dict[Resource, int] | None, position: int, /, *, need_road: bool = True) -> None:
         """places settlement, throws BuildingError if it is not possible"""
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
             raise BuildingError("Cannot afford a settlement")
@@ -476,7 +484,7 @@ class Board:
             self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
             return
     
-    def place_city(self, owner: Colour, hand: list[Resource] | None, position: int) -> None:
+    def place_city(self, owner: Colour, hand: dict[Resource, int] | None, position: int) -> None:
         """places city, throws BuildingError if it is not possible"""
         if hand != None and not can_afford(hand, Building.CITY):
             raise BuildingError("Cannot afford a city")
@@ -491,7 +499,7 @@ class Board:
         else:
             raise BuildingError("Cities must be placed on one of your own settlements")
     
-    def place_road(self, owner: Colour, hand: list[Resource] | None, position: int) -> None:
+    def place_road(self, owner: Colour, hand: dict[Resource, int] | None, position: int) -> None:
         """places road, throws BuildingError if it is not possible"""
         if hand != None and not can_afford(hand, Building.ROAD):
             raise BuildingError("Cannot afford a road")
@@ -542,13 +550,13 @@ class Board:
     
     # MARK: Game concepts
     
-    def get_resources(self, dice_value: int) -> dict[Colour, list[Resource]]:
+    def get_resources(self, dice_value: int) -> dict[Colour, dict[Resource, int]]:
         """works out which AI would recieve what resources, given a dice roll"""
         resources = {
-            Colour.RED: [],
-            Colour.ORANGE: [],
-            Colour.BLUE: [],
-            Colour.WHITE: [],
+            Colour.RED: {i: 0 for i in Resource if i != Resource.DESERT},
+            Colour.ORANGE: {i: 0 for i in Resource if i != Resource.DESERT},
+            Colour.BLUE: {i: 0 for i in Resource if i != Resource.DESERT},
+            Colour.WHITE: {i: 0 for i in Resource if i != Resource.DESERT},
         }
         
         for hex in self.hexes:
@@ -560,12 +568,11 @@ class Board:
                         vert = self.verts[vert_i]
                         if vert.structure.type == Building.SETTLEMENT:
                             # settlement
-                            resources[vert.structure.owner].append(hex.resource)
+                            resources[vert.structure.owner][hex.resource] += 1
                             
                         elif vert.structure.type == Building.CITY:
                             # city
-                            resources[vert.structure.owner].append(hex.resource)
-                            resources[vert.structure.owner].append(hex.resource)
+                            resources[vert.structure.owner][hex.resource] += 2
         
         return resources
     
@@ -685,4 +692,4 @@ def safe_copy(board: Board):
 
 if __name__ == "__main__":
     temp = Board()
-    pprint(temp.encode())
+    print(temp.encode())

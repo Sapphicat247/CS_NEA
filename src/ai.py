@@ -2,21 +2,20 @@ from src import catan
 import random
 import colours
 import dearpygui.dearpygui as dpg
-import copy
 
 class AI:
     # basic class to build other versions off
     # AIs are not trusted to make legal moves, however the AI will have to avoid infinite loops by always attempting an illegal move
     victory_points: int
-    resources: list[catan.Resource]
-    development_cards: list[catan.Development_card]
+    resources: dict[catan.Resource, int]
+    development_cards: dict[catan.Development_card, int]
     colour: catan.Colour
     ansi_colour: str
     
     def __init__(self, colour: catan.Colour) -> None:
         self.victory_points = 0
-        self.resources = []
-        self.development_cards = []
+        self.resources = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
+        self.development_cards = {i: 0 for i in catan.Development_card if i != catan.Development_card.NONE}
         self.colour = colour
         
         self.ansi_colour = {
@@ -37,10 +36,8 @@ class AI:
             case _ as e:
                 raise ValueError(f"tried to place a strange starting settlement: {e}")
     
-    def discard_half(self) -> list[catan.Resource]:
-        to_discard = len(self.resources)//2
-        
-        return self.resources[0:to_discard]
+    def discard_half(self) -> dict[catan.Resource, int]:
+        return {}
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
         # called when you roll a 7 or play a knight card
@@ -53,6 +50,9 @@ class AI:
     def on_opponent_action(self, action: catan.Action, board: catan.Board) -> None: # gives the action e.g. dice roll, and the state of the board after the action was completed
         # can be called on own turn, when another player accepts a trade deal
         pass
+    
+    def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
+        return False
     
     def gui_setup(self):
         # called at the start, can be used to display custom fields
@@ -77,8 +77,17 @@ class AI_Random(AI):
 
         return settlement_pos, road_pos
     
-    def discard_half(self) -> list[catan.Resource]:
-        return random.sample(self.resources, len(self.resources)//2)
+    def discard_half(self) -> dict[catan.Resource, int]:
+        to_remove = sum(self.resources.values()) // 2 # number of cards above limit
+        to_discard = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT} # dict of resources
+        
+        while sum(to_discard.values()) < to_remove: # while you have too many cards
+            card = random.choice([i for i in catan.Resource if i != catan.Resource.DESERT]) # chose a card type
+            if self.resources[card] > 0:
+                self.resources[card] -= 1
+                to_discard[card] += 1
+
+        return to_discard
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
         
@@ -104,7 +113,6 @@ class AI_Random(AI):
             
             case _:
                 raise ValueError(f"{building} is not a valid building")
-
     
     def do_action(self, board: catan.Board) -> catan.Action:
         # try to build something if you can afford it
@@ -127,6 +135,9 @@ class AI_Random(AI):
     def on_opponent_action(self, action: catan.Action, board: catan.Board) -> None: # gives the action e.g. dice roll, and the state of the board after the action was completed
         # can be called on own turn, when another player accepts a trade deal
         ...
+    
+    def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
+        return False
     
     def gui_setup(self):
         # called at the start, can be used to display custom fields

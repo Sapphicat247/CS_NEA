@@ -71,10 +71,11 @@ for ai_index, ai in enumerate(AI_list):
                     dpg.add_table_column()
                     
                     for development_card in catan.Development_card:
-                        
-                        with dpg.table_row():
-                            dpg.add_text(development_card.name)
-                            dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
+                        if development_card != catan.Development_card.NONE:
+                            
+                            with dpg.table_row():
+                                dpg.add_text(development_card.name)
+                                dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
             
             with dpg.tab(label="other"):
                 ai.gui_setup()
@@ -125,7 +126,8 @@ def update() -> bool:
                 dpg.set_value(f"{ai.colour.name}_{resource.name}_number", f"{resources_counter[resource]}")
         
         for development_card in catan.Development_card:
-            dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{development_cards_counter[development_card]}")
+            if development_card != catan.Development_card.NONE:
+                dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{development_cards_counter[development_card]}")
         
         if ai.victory_points >= 10:
             return True
@@ -153,12 +155,12 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
         raise ValueError(f"{steal_from.colour} doen't own any settlements or cities adjacent to the robber position")
     
     # valid steal config
-    if len(steal_from.resources) != 0: # only steal if they have >1 card
-        card = random.choice(steal_from.resources)
+    if sum(steal_from.resources.values()) > 0: # only try to steal if they have >1 card
+        card = random.choices(list(steal_from.resources.keys()), list(steal_from.resources.values()))[0]
         print(f"\t{mover.ansi_colour}{mover.colour}{colours.END} stole {card} from {steal_from.ansi_colour}{steal_from.colour}{colours.END}")
-        steal_from.resources.remove(card)
         
-        mover.resources.append(card)
+        steal_from.resources[card] -= 1
+        mover.resources[card] += 1
     
     board.set_robber_pos(pos)
 
@@ -184,14 +186,14 @@ while dpg.is_dearpygui_running():
             if len(ai.resources) > 7:
                 
                 discarded = ai.discard_half()
-                if len(discarded) != len(ai.resources)//2:
-                    raise ValueError(f"{len(discarded)} is not half of your hand")
+                if sum(discarded.values()) != sum(ai.resources.values())//2:
+                    raise ValueError(f"{sum(discarded.values())} is not half of your hand")
                 
                 if not catan.can_afford(ai.resources, discarded):
                     raise ValueError("you can't discard cards you don't have")
                 
                 for card in discarded:
-                    ai.resources.remove(card)
+                    ai.resources[card] -= 1
         
         # robber
         new_robber_pos, steal_target = current_AI.move_robber(catan.safe_copy(board)) # get the robber movement
@@ -207,7 +209,8 @@ while dpg.is_dearpygui_running():
         resources = board.get_resources(dice)
         if DEBUG: print(resources)
         for ai in AI_list:
-            ai.resources += resources[ai.colour]
+            for resource in resources[ai.colour].keys():
+                ai.resources[resource] += resources[ai.colour][resource]
         
             ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), catan.safe_copy(board))
     
@@ -218,7 +221,7 @@ while dpg.is_dearpygui_running():
         if DEBUG: print("\tdoing action")
         action = current_AI.do_action(catan.safe_copy(board))
         
-        print(f"\t{action}")
+        print(f"\t{action.event.name}: {action.arg}")
         
         # try to do action
         match action.event, action.arg:
@@ -229,10 +232,10 @@ while dpg.is_dearpygui_running():
                 board.place_settlement(current_AI.colour, current_AI.resources, pos)
                 
                 # can place settlement
-                current_AI.resources.remove(catan.Resource.WOOL)
-                current_AI.resources.remove(catan.Resource.WOOD)
-                current_AI.resources.remove(catan.Resource.BRICK)
-                current_AI.resources.remove(catan.Resource.GRAIN)
+                current_AI.resources[catan.Resource.BRICK] -= 1
+                current_AI.resources[catan.Resource.WOOD] -= 1
+                current_AI.resources[catan.Resource.WOOL] -= 1
+                current_AI.resources[catan.Resource.GRAIN] -= 1
 
                 current_AI.victory_points += 1
             
@@ -240,11 +243,8 @@ while dpg.is_dearpygui_running():
                 board.place_city(current_AI.colour, current_AI.resources, pos)
                 
                 # can place city
-                current_AI.resources.remove(catan.Resource.GRAIN)
-                current_AI.resources.remove(catan.Resource.GRAIN)
-                current_AI.resources.remove(catan.Resource.ORE)
-                current_AI.resources.remove(catan.Resource.ORE)
-                current_AI.resources.remove(catan.Resource.ORE)
+                current_AI.resources[catan.Resource.ORE] -= 3
+                current_AI.resources[catan.Resource.GRAIN] -= 2
 
                 current_AI.victory_points += 1
                 
@@ -252,20 +252,22 @@ while dpg.is_dearpygui_running():
                 board.place_road(current_AI.colour, current_AI.resources, pos)
                 
                 # can place road
-                current_AI.resources.remove(catan.Resource.WOOD)
-                current_AI.resources.remove(catan.Resource.BRICK)
+                current_AI.resources[catan.Resource.BRICK] -= 1
+                current_AI.resources[catan.Resource.WOOD] -= 1
                 
             case [catan.Event.BUY_DEV_CARD, None]:
                 if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
                     raise ValueError("you can't afford a developmeant card")
                 
-                current_AI.resources.remove(catan.Resource.WOOL)
-                current_AI.resources.remove(catan.Resource.GRAIN)
-                current_AI.resources.remove(catan.Resource.ORE)
+                current_AI.resources[catan.Resource.ORE] -= 1
+                current_AI.resources[catan.Resource.WOOL] -= 1
+                current_AI.resources[catan.Resource.GRAIN] -= 1
+                
+                
                 try:
-                    current_AI.development_cards.append(board.development_cards.pop()) # give AI a development card
+                    current_AI.development_cards[board.development_cards.pop()] += 1 # give AI a development card
                 except IndexError:
-                    print("no development cards left")
+                    if DEBUG: print("no development cards left")
             
             case [catan.Event.USE_KNIGHT, None]:
                 new_robber_pos, steal_target = current_AI.move_robber(catan.safe_copy(board)) # get the robber movement
@@ -275,8 +277,8 @@ while dpg.is_dearpygui_running():
                 if type(resource_1) != catan.Resource or type(resource_2) != catan.Resource:
                     raise ValueError(f"{resource_1} or {resource_2} is not a Resource")
                 
-                current_AI.resources.append(resource_1)
-                current_AI.resources.append(resource_2)
+                current_AI.resources[resource_1] += 1
+                current_AI.resources[resource_2] += 1
                 
             case [catan.Event.USE_ROAD_BUILDING, [pos_1, pos_2]] if type(pos_1) == int and type(pos_2) == int:
                 board.place_road(current_AI.colour, current_AI.resources, pos_1)
@@ -286,11 +288,10 @@ while dpg.is_dearpygui_running():
                 taken = 0
                 for ai in AI_list:
                     if ai != current_AI:
-                        while resource in ai.resources:
-                            ai.resources.remove(resource)
-                            taken += 1
+                        taken += ai.resources[resource]
+                        ai.resources[resource] = 0
                             
-                current_AI.resources += [resource]*taken
+                current_AI.resources[resource] += taken
             
             case "trade":
                 ...
