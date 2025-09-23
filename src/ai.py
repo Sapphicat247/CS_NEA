@@ -80,11 +80,12 @@ class AI_Random(AI):
     def discard_half(self) -> dict[catan.Resource, int]:
         to_remove = sum(self.resources.values()) // 2 # number of cards above limit
         to_discard = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT} # dict of resources
+        hand_copy = self.resources.copy()
         
         while sum(to_discard.values()) < to_remove: # while you have too many cards
             card = random.choice([i for i in catan.Resource if i != catan.Resource.DESERT]) # chose a card type
-            if self.resources[card] > 0:
-                self.resources[card] -= 1
+            if hand_copy[card] > 0:
+                hand_copy[card] -= 1
                 to_discard[card] += 1
 
         return to_discard

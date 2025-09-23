@@ -115,21 +115,19 @@ def update() -> bool:
     dpg.render_dearpygui_frame()
     
     for ai in AI_list:
-        resources_counter = Counter(ai.resources)
-        development_cards_counter = Counter(ai.development_cards)
         
-        real_vps = ai.victory_points + sum([1 for i in ai.development_cards if i == catan.Development_card.VICTORY_POINT])
+        real_vps = ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT]
         dpg.set_value(f"{ai.colour.name}_vps", f"{ai.victory_points} ({real_vps}) VPs")
         
         for resource in catan.Resource:
             if resource != catan.Resource.DESERT:
-                dpg.set_value(f"{ai.colour.name}_{resource.name}_number", f"{resources_counter[resource]}")
+                dpg.set_value(f"{ai.colour.name}_{resource.name}_number", f"{ai.resources[resource]}")
         
         for development_card in catan.Development_card:
             if development_card != catan.Development_card.NONE:
-                dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{development_cards_counter[development_card]}")
+                dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{ai.development_cards[development_card]}")
         
-        if ai.victory_points >= 10:
+        if ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] >= 10:
             return True
     
     return False
@@ -183,17 +181,18 @@ while dpg.is_dearpygui_running():
     if dice == 7:
         # hand limit of 7
         for ai in AI_list:
-            if len(ai.resources) > 7:
+            temp = sum(ai.resources.values())
+            if temp > 7:
                 
                 discarded = ai.discard_half()
                 if sum(discarded.values()) != sum(ai.resources.values())//2:
-                    raise ValueError(f"{sum(discarded.values())} is not half of your hand")
+                    raise ValueError(f"{sum(discarded.values())} is not half of your hand of {sum(ai.resources.values())}")
                 
                 if not catan.can_afford(ai.resources, discarded):
                     raise ValueError("you can't discard cards you don't have")
                 
-                for card in discarded:
-                    ai.resources[card] -= 1
+                for card in discarded.keys():
+                    ai.resources[card] -= discarded[card]
         
         # robber
         new_robber_pos, steal_target = current_AI.move_robber(catan.safe_copy(board)) # get the robber movement
@@ -281,8 +280,8 @@ while dpg.is_dearpygui_running():
                 current_AI.resources[resource_2] += 1
                 
             case [catan.Event.USE_ROAD_BUILDING, [pos_1, pos_2]] if type(pos_1) == int and type(pos_2) == int:
-                board.place_road(current_AI.colour, current_AI.resources, pos_1)
-                board.place_road(current_AI.colour, current_AI.resources, pos_2)
+                board.place_road(current_AI.colour, None, pos_1)
+                board.place_road(current_AI.colour, None, pos_2)
                 
             case [catan.Event.USE_MONOPOLY, resource] if type(resource) == catan.Resource:
                 taken = 0
@@ -322,7 +321,7 @@ while dpg.is_dearpygui_running():
         break
 
 for ai in AI_list:
-    if ai.victory_points >= 10:
+    if ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] >= 10:
         print(f"{ai.ansi_colour}{ai.colour.name} WON!{colours.END}")
 
 while dpg.is_dearpygui_running():
