@@ -9,6 +9,9 @@ from copy import deepcopy
 # GUI
 import dearpygui.dearpygui as dpg
 
+# testing
+from pprint import pprint
+
 
 class BuildingError(Exception):
     """error used for when an AI tries to place a building in an invalid location"""
@@ -103,9 +106,7 @@ class Port:
     resource: Resource
     direction: Direction # for drawing on screen
 
-# MARK: board construction
-
-# "pointers" to objects are dictionaries with set keys
+# MARK: board elements
 
 @dataclass
 class Vertex:
@@ -177,6 +178,7 @@ class Board:
     verts: list[Vertex]
     development_cards: list[Development_card]
     
+    # MARK: board construction
     def __init__(self, data: dict | None = None) -> None:
         # set up dpg viewport =========================================================================================================
         dpg.create_context()
@@ -588,6 +590,38 @@ class Board:
             hex.hasRobber = False
         
         self.hexes[pos].hasRobber = True
+    
+    def longest_road(self, colour: Colour):
+        def search(start: int, visited: set[int] = set(), dist = 0) -> int:
+            visited.add(start)
+            
+            max_distance = 0
+            
+            for vert in self.edges[start].verts:
+                for edge in self.verts[vert].edges:
+                    if edge not in visited and edge is not None:
+                        # new edge, not yet seen
+                        # if it is longer than the current max, set the current max
+                        max_distance = max(max_distance, search(edge, visited, dist))
+                        # mark edge as visited
+                        visited.add(edge)
+            
+            return max_distance
+        
+        max_length = 0
+        
+        # iterate over each road of that colour
+        for i, edge in enumerate(self.edges):
+            if edge.structure.owner != colour:
+                # not owned by this person
+                continue
+            
+            max_length = max(max_length, search(i))
+            
+            # correct owner
+            # do a depth first search
+            
+            
     
     # MARK: Display
     def encode(self) -> dict:
