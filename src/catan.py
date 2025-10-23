@@ -166,7 +166,7 @@ def can_afford(hand: dict[Resource, int], building: Building | dict[Resource, in
                         hand[Resource.GRAIN] >= 1,])
         
         case _ as resources if type(resources) == dict:
-            return all(hand[k] > resources[k] for k in resources.keys())
+            return all(hand[k] >= resources[k] for k in resources.keys())
         
         case _:
             raise ValueError(f"incorrect type: {building}")
