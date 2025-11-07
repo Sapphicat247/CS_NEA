@@ -99,12 +99,12 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
         settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, catan.safe_copy(board)) # get a move from the AI
         print(f"{settlement_pos} and {road_pos}{colours.END}")
         
-        board.place_settlement(catan.Colour(i+1), None, settlement_pos, need_road=False)
+        board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
 
         if road_pos not in board.verts[settlement_pos].edges:
             raise catan.BuildingError("Not connected to correct settlement")
         
-        board.place_road(catan.Colour(i+1), None, road_pos)
+        board.place_road(catan.Colour(i+1), hand=None, position=road_pos)
             
         AI_list[i].victory_points += 1
         break
@@ -133,7 +133,7 @@ def update() -> bool:
     return False
 
 def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
-    if pos == board.get_robber_pos():
+    if pos == board.robber_pos:
         raise ValueError("you can't move the robber to the same space it is already on")
     
     if pos < 0 or pos > 18:
@@ -228,7 +228,7 @@ while dpg.is_dearpygui_running():
                 break
             
             case [catan.Event.BUILD_SETTLEMENT, pos] if type(pos) == int:
-                board.place_settlement(current_AI.colour, current_AI.resources, pos)
+                board.place_settlement(current_AI.colour, hand=current_AI.resources, position=pos)
                 
                 # can place settlement
                 current_AI.resources[catan.Resource.BRICK] -= 1
@@ -239,7 +239,7 @@ while dpg.is_dearpygui_running():
                 current_AI.victory_points += 1
             
             case [catan.Event.BUILD_CITY, pos] if type(pos) == int:
-                board.place_city(current_AI.colour, current_AI.resources, pos)
+                board.place_city(current_AI.colour, hand=current_AI.resources, position=pos)
                 
                 # can place city
                 current_AI.resources[catan.Resource.ORE] -= 3
@@ -248,7 +248,7 @@ while dpg.is_dearpygui_running():
                 current_AI.victory_points += 1
                 
             case [catan.Event.BUILD_ROAD, pos] if type(pos) == int:
-                board.place_road(current_AI.colour, current_AI.resources, pos)
+                board.place_road(current_AI.colour, hand=current_AI.resources, position=pos)
                 
                 # can place road
                 current_AI.resources[catan.Resource.BRICK] -= 1
@@ -280,8 +280,8 @@ while dpg.is_dearpygui_running():
                 current_AI.resources[resource_2] += 1
                 
             case [catan.Event.USE_ROAD_BUILDING, [pos_1, pos_2]] if type(pos_1) == int and type(pos_2) == int:
-                board.place_road(current_AI.colour, None, pos_1)
-                board.place_road(current_AI.colour, None, pos_2)
+                board.place_road(current_AI.colour, hand=None, position=pos_1)
+                board.place_road(current_AI.colour, hand=None, position=pos_2)
                 
             case [catan.Event.USE_MONOPOLY, resource] if type(resource) == catan.Resource:
                 taken = 0

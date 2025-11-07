@@ -19,17 +19,6 @@ class BuildingError(Exception):
         # Call the base class constructor with the parameters it needs
         super().__init__(message)
 
-class Direction(Flag):
-    """used to render sea ports correctly"""
-    N  = 2**0
-    NE = 2**1
-    E  = 2**2
-    SE = 2**3
-    S  = 2**4
-    SW = 2**5
-    W  = 2**6
-    NW = 2**7
-
 # MARK: board contents
 
 class Colour(Enum):
@@ -104,7 +93,6 @@ class Action:
 class Port:
     """component of the actual board game"""
     resource: Resource
-    direction: Direction # for drawing on screen
 
 # MARK: board elements
 
@@ -180,6 +168,7 @@ class Board:
     
     # MARK: board construction
     def __init__(self, data: dict | None = None) -> None:
+        # optional data dictionary to specify the board layout
         # set up dpg viewport =========================================================================================================
         dpg.create_context()
         
@@ -200,7 +189,6 @@ class Board:
         self.development_cards = [Development_card.KNIGHT]*14 + [Development_card.VICTORY_POINT]*5 + [Development_card.YEAR_OF_PLENTY]*2 + [Development_card.ROAD_BUILDING]*2 + [Development_card.MONOPOLY]*2
         random.shuffle(self.development_cards)
         
-        # optional data dictionary to specify the board layout
         # set hexes on hexes ===========================================================================================================
         # create root
         self.hexes.append(Hex(hexes=[1,2,3,4,5,6], verts=[0,1,2,3,4,5]))
@@ -400,7 +388,7 @@ class Board:
             positions = [sum(gaps[:i+1]) + 42 + i for i in range(len(gaps))]
             
             for i in positions:
-                self.edges[i].port = Port(resources.pop(), Direction.NE) # implement direction MARK: TODO
+                self.edges[i].port = Port(resources.pop()) # implement direction MARK: TODO
         
         else:
             # hexes
@@ -412,16 +400,32 @@ class Board:
             
             # ports
             for port in data["ports"]:
-                self.edges[port["position"]].port = Port(Resource[port["resource"]], Direction.NE) # implement direction MARK: TODO
+                self.edges[port["position"]].port = Port(Resource[port["resource"]]) # implement direction MARK: TODO
 
     # MARK: Placement
-    def can_place(self, building: Building, owner: Colour, hand: dict[Resource, int] | None, position: int, /, *, need_road: bool = True) -> bool:
-        """test if a certain AI can build a building,\n
-        this takes into account the hand of cards and the current board"""
+    def can_place(self, building: Building, owner: Colour, position: int, hand: dict[Resource, int] | None = None, *, need_road: bool = True) -> bool:
+        """test if a certain AI can build a building.
+        
+        this takes into account the hand of cards and the current board
+        
+        Args:
+            building (`Building`): the building to test
+            owner (`Colour`): the owner of the building
+            position (`int`): the index location for the building
+            hand (`dict[Resource, int]` (optional)): a hand of cards
+        
+        KWArgs:
+            need_road (`bool`): needs road
+        
+        Returns:
+            bool: True if you can place that building
+        
+        """
+        
         match building:
             case Building.ROAD:
                 try:
-                    self.place_road(owner, hand, position)
+                    self.place_road(owner, hand=hand, position=position)
                 except BuildingError:
                     # can't place road
                     return False
@@ -431,7 +435,7 @@ class Board:
                 
             case Building.SETTLEMENT:
                 try:
-                    self.place_settlement(owner, hand, position, need_road=need_road)
+                    self.place_settlement(owner, hand=hand, position=position, need_road=need_road)
                 except BuildingError:
                     # can't place road
                     return False
@@ -441,7 +445,7 @@ class Board:
                 
             case Building.CITY:
                 try:
-                    self.place_city(owner, hand, position)
+                    self.place_city(owner, hand=hand, position=position)
                 except BuildingError:
                     # can't place road
                     return False
@@ -455,8 +459,21 @@ class Board:
                 raise ValueError(f"{building} is not of type: Building")
     
     
-    def place_settlement(self, owner: Colour, hand: dict[Resource, int] | None, position: int, /, *, need_road: bool = True) -> None:
-        """places settlement, throws BuildingError if it is not possible"""
+    def place_settlement(self, owner: Colour, position: int, hand: dict[Resource, int] | None = None, *, need_road: bool = True) -> None:
+        """places settlement
+        
+        Args:
+            owner (`Colour`): the owner of the building
+            position (`int`): the index location for the building
+            hand (`dict[Resource, int]` (optional)): a hand of cards
+        
+        KWArgs:
+            need_road (`bool`): needs road
+        
+        Raises:
+            BuildingError: The building can't be placed
+        """
+        
         if hand != None and not can_afford(hand, Building.SETTLEMENT):
             raise BuildingError("Cannot afford a settlement")
         
@@ -486,8 +503,18 @@ class Board:
             self.verts[position].structure = Structure(owner, Building.SETTLEMENT)
             return
     
-    def place_city(self, owner: Colour, hand: dict[Resource, int] | None, position: int) -> None:
-        """places city, throws BuildingError if it is not possible"""
+    def place_city(self, owner: Colour, position: int, hand: dict[Resource, int] | None = None) -> None:
+        """places city
+        
+        Args:
+            owner (`Colour`): the owner of the building
+            position (`int`): the index location for the building
+            hand (`dict[Resource, int]` (optional)): a hand of cards
+        
+        Raises:
+            BuildingError: The building can't be placed
+        """
+        
         if hand != None and not can_afford(hand, Building.CITY):
             raise BuildingError("Cannot afford a city")
         
@@ -501,8 +528,18 @@ class Board:
         else:
             raise BuildingError("Cities must be placed on one of your own settlements")
     
-    def place_road(self, owner: Colour, hand: dict[Resource, int] | None, position: int) -> None:
-        """places road, throws BuildingError if it is not possible"""
+    def place_road(self, owner: Colour, position: int, hand: dict[Resource, int] | None = None) -> None:
+        """places road
+        
+        Args:
+            owner (`Colour`): the owner of the building
+            position (`int`): the index location for the building
+            hand (`dict[Resource, int]` (optional)): a hand of cards
+        
+        Raises:
+            BuildingError: The building can't be placed
+        """
+        
         if hand != None and not can_afford(hand, Building.ROAD):
             raise BuildingError("Cannot afford a road")
         
@@ -531,19 +568,39 @@ class Board:
         raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
     
     def delete_settlement(self, position: int):
-        """removes settlement"""
+        """removes settlement
+        
+        Args:
+            position (`int`): the index location for the building
+        """
         self.verts[position].structure = Structure()
     
     def delete_city(self, position: int):
-        """downgrades city to settlement"""
+        """downgrades city to settlement
+        
+        Args:
+            position (`int`): the index location for the building
+        """
         self.verts[position].structure = Structure(self.verts[position].structure.owner, Building.SETTLEMENT)
         
     def delete_road(self, position: int):
-        """removes road"""
+        """removes road
+        
+        Args:
+            position (`int`): the index location for the building
+        """
         self.edges[position].structure = Structure()
     
-    def get_robber_pos(self) -> int:
-        """returns the hex the robber is currently on"""
+    @property
+    def robber_pos(self) -> int:
+        """gets where the robber is
+        
+        Returns:
+            int: the index of the robber location
+        
+        Raises:
+            Exception: Robber was not found
+        """
         for i, hex in enumerate(self.hexes):
             if hex.hasRobber:
                 return i
@@ -583,7 +640,7 @@ class Board:
         if pos < 0 or pos > 18:
             raise ValueError("you must choose a hex number between 0 and 18 inclusive")
         
-        if pos == self.get_robber_pos():
+        if pos == self.robber_pos:
             raise ValueError("you can't put the robber on the same hex it started on")
         
         for hex in self.hexes:
@@ -625,8 +682,7 @@ class Board:
     
     # MARK: Display
     def encode(self) -> dict:
-        """produces a dictionary representation of the board,\n
-        ignores anything built on it"""
+        """produces a dictionary representation of the board, ignores anything built on it"""
         return {
             "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.hexes],
             "ports": [{"resource": edge.port.resource.name, "position": i} for i, edge in enumerate(self.edges) if edge.port != None]

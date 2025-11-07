@@ -69,7 +69,7 @@ class AI_Random(AI):
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         # get settlement position:
         settlement_pos = random.randint(0, 53) # get random position
-        while not board.can_place(catan.Building.SETTLEMENT, self.colour, None, settlement_pos, need_road=False): # if it's occupied, try again
+        while not board.can_place(catan.Building.SETTLEMENT, self.colour, hand=None, position=settlement_pos, need_road=False): # if it's occupied, try again
             settlement_pos = random.randint(0, 53) # get random position
         
         # get road pos by choosing a random edges on the selectd vertex
@@ -93,7 +93,7 @@ class AI_Random(AI):
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
         
         robber_pos = random.randint(0, 18)
-        while robber_pos == board.get_robber_pos():
+        while robber_pos == board.robber_pos:
             robber_pos = random.randint(0, 18)
             
         adj_players = [board.verts[i].structure.owner for i in board.hexes[robber_pos].verts] # get all players adjacent to that hex
@@ -107,7 +107,7 @@ class AI_Random(AI):
     def __get_position_options(self, building: catan.Building, board: catan.Board) -> list[int] | set[int]:
         match building:
             case catan.Building.CITY | catan.Building.SETTLEMENT | catan.Building.ROAD:
-                return {i for i in range(len(board.verts)) if board.can_place(building, self.colour, self.resources, i)}
+                return {i for i in range(len(board.verts)) if board.can_place(building, self.colour, hand=self.resources, position=i)}
             
             case catan.Building.DEVELOPMENT_CARD:
                 raise ValueError("you can't 'place' a development card")
