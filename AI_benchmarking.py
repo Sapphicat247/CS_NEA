@@ -96,7 +96,7 @@ with dpg.window(label="graphs", pos= (400+39, 0)):
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
         print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement and road at: ", end=" ")
-        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, catan.safe_copy(board)) # get a move from the AI
+        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, board.safe_copy) # get a move from the AI
         print(f"{settlement_pos} and {road_pos}{colours.END}")
         
         board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
@@ -195,7 +195,7 @@ while dpg.is_dearpygui_running():
                     ai.resources[card] -= discarded[card]
         
         # robber
-        new_robber_pos, steal_target = current_AI.move_robber(catan.safe_copy(board)) # get the robber movement
+        new_robber_pos, steal_target = current_AI.move_robber(board.safe_copy) # get the robber movement
         
         if steal_target == catan.Colour.NONE:
             steal_target = None
@@ -211,14 +211,14 @@ while dpg.is_dearpygui_running():
             for resource in resources[ai.colour].keys():
                 ai.resources[resource] += resources[ai.colour][resource]
         
-            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), catan.safe_copy(board))
+            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), board.safe_copy)
     
     if update():
         break
     
     while 1:
         if DEBUG: print("\tdoing action")
-        action = current_AI.do_action(catan.safe_copy(board))
+        action = current_AI.do_action(board.safe_copy)
         
         print(f"\t{action.event.name}: {action.arg}")
         
@@ -269,7 +269,7 @@ while dpg.is_dearpygui_running():
                     if DEBUG: print("no development cards left")
             
             case [catan.Event.USE_KNIGHT, None]:
-                new_robber_pos, steal_target = current_AI.move_robber(catan.safe_copy(board)) # get the robber movement
+                new_robber_pos, steal_target = current_AI.move_robber(board.safe_copy) # get the robber movement
                 move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
             
             case [catan.Event.USE_YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
@@ -303,7 +303,7 @@ while dpg.is_dearpygui_running():
         
         for ai in AI_list:
             if ai != current_AI:
-                ai.on_opponent_action(action, catan.safe_copy(board))
+                ai.on_opponent_action(action, board.safe_copy)
         
         board.draw()
         

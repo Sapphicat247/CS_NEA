@@ -681,7 +681,8 @@ class Board:
             
     
     # MARK: Display
-    def encode(self) -> dict:
+    @property
+    def encoding(self) -> dict:
         """produces a dictionary representation of the board, ignores anything built on it"""
         return {
             "resources": [{"resource": i.resource.name, "value": i.diceValue} for i in self.hexes],
@@ -689,7 +690,7 @@ class Board:
         }
     
     def __str__(self) -> str:
-        return str(self.encode())
+        return str(self.encoding)
     
     def draw(self):
         """updates GUI"""
@@ -770,16 +771,16 @@ class Board:
                     
                 dpg.draw_line(p0, p1, thickness=size/12, color=colour, parent="edges")
 
-# MARK: misc functions
-
-def safe_copy(board: Board):
-    """hide info the AIs are not allowed to see"""
-    new_board = deepcopy(board)
-    new_board.development_cards = [Development_card.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
-    
-    return new_board
+    # MARK: misc functions
+    @property
+    def safe_copy(self):
+        """hide info the AIs are not allowed to see"""
+        new_board = deepcopy(self)
+        new_board.development_cards = [Development_card.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
+        
+        return new_board
     
 
 if __name__ == "__main__":
     temp = Board()
-    print(temp.encode())
+    print(temp.encoding)
