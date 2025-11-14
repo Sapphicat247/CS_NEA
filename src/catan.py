@@ -149,7 +149,7 @@ def can_afford(hand: dict[Resource, int], building: Building | dict[Resource, in
                         hand[Resource.WOOD]  >= 1,])
         
         case Building.DEVELOPMENT_CARD:
-            return all([hand[Resource.ORE]  >= 1,
+            return all([hand[Resource.ORE]   >= 1,
                         hand[Resource.WOOL]  >= 1,
                         hand[Resource.GRAIN] >= 1,])
         
@@ -648,7 +648,7 @@ class Board:
         
         self.hexes[pos].hasRobber = True
     
-    def longest_road(self, colour: Colour):
+    def longest_road(self, colour: Colour): # MARK: TODO longest road
         def search(start: int, visited: set[int] = set(), dist = 0) -> int:
             visited.add(start)
             
