@@ -25,6 +25,9 @@ class AI:
             catan.Colour.WHITE: colours.fg.WHITE,
         }[self.colour] + colours.bg.RGB(0, 0, 0)
     
+    def update_gui(self) -> None:
+        ...
+
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         match settlement_number:
             case "first":
@@ -53,10 +56,6 @@ class AI:
     
     def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
         return False
-    
-    def gui_setup(self):
-        # called at the start, can be used to display custom fields
-        pass
      
 class AI_Random(AI):
     # basic class to build other versions off
@@ -139,7 +138,3 @@ class AI_Random(AI):
     
     def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
         return False
-    
-    def gui_setup(self):
-        # called at the start, can be used to display custom fields
-        pass

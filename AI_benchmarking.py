@@ -1,11 +1,13 @@
 from src import catan
 from src.ai import AI, AI_Random
+from src.player import Player
+
 import colours
+
 import dearpygui.dearpygui as dpg
-from collections import Counter
 import random
 
-DEBUG = False
+HAS_HUMAN = True
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
@@ -33,7 +35,7 @@ board = catan.Board()
 # create AIs
 
 AI_list: list[AI] = [
-    AI_Random(catan.Colour.RED),
+    Player(catan.Colour.RED) if HAS_HUMAN else AI_Random(catan.Colour.RED),
     AI_Random(catan.Colour.ORANGE),
     AI_Random(catan.Colour.BLUE),
     AI_Random(catan.Colour.WHITE),
@@ -48,46 +50,48 @@ def get_by_colour(col: catan.Colour) -> AI:
 
 pos_list = [(0,0), (0,1080-400-39), (1920-300-16, 0), (1920-300-16, 1080-400-39)]
 
-for ai_index, ai in enumerate(AI_list):
-    with dpg.window(label=ai.colour.name, width=300, height=400, pos=pos_list[ai_index], ):
-        dpg.add_text(f"{ai.victory_points} ({0}) VPs", tag=f"{ai.colour.name}_vps")
-        
-        with dpg.tab_bar():
-            with dpg.tab(label = "hand"):
-                dpg.add_text(f"\nresources:")
-                with dpg.table(header_row=False):
-                    dpg.add_table_column()
-                    dpg.add_table_column()
-                    
-                    for resource in catan.Resource:
-                        if resource != catan.Resource.DESERT:
-                            with dpg.table_row():
-                                dpg.add_text(resource.name)
-                                dpg.add_text("0", tag=f"{ai.colour.name}_{resource.name}_number")
-                
-                dpg.add_text(f"\nDevelopment cards:")
-                with dpg.table(header_row=False):
-                    dpg.add_table_column()
-                    dpg.add_table_column()
-                    
-                    for development_card in catan.Development_card:
-                        if development_card != catan.Development_card.NONE:
-                            
-                            with dpg.table_row():
-                                dpg.add_text(development_card.name)
-                                dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
+if not HAS_HUMAN: # show debug info on AIs
+
+    for ai_index, ai in enumerate(AI_list):
+        with dpg.window(label=ai.colour.name, width=300, height=400, pos=pos_list[ai_index], ):
+            dpg.add_text(f"{ai.victory_points} ({0}) VPs", tag=f"{ai.colour.name}_vps")
             
-            with dpg.tab(label="other"):
-                ai.gui_setup()
+            with dpg.tab_bar():
+                with dpg.tab(label = "hand"):
+                    dpg.add_text(f"\nresources:")
+                    with dpg.table(header_row=False):
+                        dpg.add_table_column()
+                        dpg.add_table_column()
+                        
+                        for resource in catan.Resource:
+                            if resource != catan.Resource.DESERT:
+                                with dpg.table_row():
+                                    dpg.add_text(resource.name)
+                                    dpg.add_text("0", tag=f"{ai.colour.name}_{resource.name}_number")
+                    
+                    dpg.add_text(f"\nDevelopment cards:")
+                    with dpg.table(header_row=False):
+                        dpg.add_table_column()
+                        dpg.add_table_column()
+                        
+                        for development_card in catan.Development_card:
+                            if development_card != catan.Development_card.NONE:
+                                
+                                with dpg.table_row():
+                                    dpg.add_text(development_card.name)
+                                    dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
 
 ready_for_turn = True
 def next_turn():
     global ready_for_turn
     ready_for_turn = True
-              
-with dpg.window(label="graphs", pos= (400+39, 0)):
-    dpg.add_button(label="next turn", callback=next_turn)
-    auto_run = dpg.add_checkbox(label="auto")
+
+auto_run = -1
+
+if not HAS_HUMAN:    
+    with dpg.window(label="graphs", pos= (400+39, 0)):
+        dpg.add_button(label="next turn", callback=next_turn)
+        auto_run = dpg.add_checkbox(label="auto")
 
 
 # MARK: set-up phaze
@@ -95,9 +99,9 @@ with dpg.window(label="graphs", pos= (400+39, 0)):
 
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
-        print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement and road at: ", end=" ")
+        #print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement and road at: ", end=" ")
         settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, board.safe_copy) # get a move from the AI
-        print(f"{settlement_pos} and {road_pos}{colours.END}")
+        #print(f"{settlement_pos} and {road_pos}{colours.END}")
         
         board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
 
@@ -114,21 +118,24 @@ def update() -> bool:
     board.draw()
     dpg.render_dearpygui_frame()
     
-    for ai in AI_list:
-        
-        real_vps = ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT]
-        dpg.set_value(f"{ai.colour.name}_vps", f"{ai.victory_points} ({real_vps}) VPs")
-        
-        for resource in catan.Resource:
-            if resource != catan.Resource.DESERT:
-                dpg.set_value(f"{ai.colour.name}_{resource.name}_number", f"{ai.resources[resource]}")
-        
-        for development_card in catan.Development_card:
-            if development_card != catan.Development_card.NONE:
-                dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{ai.development_cards[development_card]}")
-        
-        if ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] >= 10:
-            return True
+    if  HAS_HUMAN:
+        ...
+    else:
+        for ai in AI_list:
+            
+            real_vps = ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT]
+            dpg.set_value(f"{ai.colour.name}_vps", f"{ai.victory_points} ({real_vps}) VPs")
+            
+            for resource in catan.Resource:
+                if resource != catan.Resource.DESERT:
+                    dpg.set_value(f"{ai.colour.name}_{resource.name}_number", f"{ai.resources[resource]}")
+            
+            for development_card in catan.Development_card:
+                if development_card != catan.Development_card.NONE:
+                    dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{ai.development_cards[development_card]}")
+            
+            if ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] >= 10:
+                return True
     
     return False
 
@@ -155,7 +162,7 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
     # valid steal config
     if sum(steal_from.resources.values()) > 0: # only try to steal if they have >1 card
         card = random.choices(list(steal_from.resources.keys()), list(steal_from.resources.values()))[0]
-        print(f"\t{mover.ansi_colour}{mover.colour}{colours.END} stole {card} from {steal_from.ansi_colour}{steal_from.colour}{colours.END}")
+        #print(f"\t{mover.ansi_colour}{mover.colour}{colours.END} stole {card} from {steal_from.ansi_colour}{steal_from.colour}{colours.END}")
         
         steal_from.resources[card] -= 1
         mover.resources[card] += 1
@@ -166,16 +173,18 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
 current_turn = 0
 
 while dpg.is_dearpygui_running():
-    while not ready_for_turn and dpg.get_value(auto_run) == False:
-        update()
+    update()
+    if not HAS_HUMAN:
+        while not ready_for_turn and dpg.get_value(auto_run) == False:
+            update()
     
     ready_for_turn = False
     current_AI = AI_list[current_turn]
     
-    print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
-    if DEBUG: print("\trolling dice")
+    #print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
+    #if DEBUG: print("\trolling dice")
     dice = random.randint(1, 6) + random.randint(1, 6)
-    print(f"\trolled a {dice};", "moving robber" if dice == 7 else "distributing resources")
+    #print(f"\trolled a {dice};", "moving robber" if dice == 7 else "distributing resources")
     # filter for rolling a 7
     
     if dice == 7:
@@ -206,7 +215,7 @@ while dpg.is_dearpygui_running():
         
     else:
         resources = board.get_resources(dice)
-        if DEBUG: print(resources)
+        #if DEBUG: print(resources)
         for ai in AI_list:
             for resource in resources[ai.colour].keys():
                 ai.resources[resource] += resources[ai.colour][resource]
@@ -217,10 +226,10 @@ while dpg.is_dearpygui_running():
         break
     
     while 1:
-        if DEBUG: print("\tdoing action")
+        #if DEBUG: print("\tdoing action")
         action = current_AI.do_action(board.safe_copy)
         
-        print(f"\t{action.event.name}: {action.arg}")
+        #print(f"\t{action.event.name}: {action.arg}")
         
         # try to do action
         match action.event, action.arg:
@@ -266,7 +275,7 @@ while dpg.is_dearpygui_running():
                 try:
                     current_AI.development_cards[board.development_cards.pop()] += 1 # give AI a development card
                 except IndexError:
-                    if DEBUG: print("no development cards left")
+                    print("no development cards left")
             
             case [catan.Event.USE_KNIGHT, None]:
                 new_robber_pos, steal_target = current_AI.move_robber(board.safe_copy) # get the robber movement
@@ -292,7 +301,7 @@ while dpg.is_dearpygui_running():
                             
                 current_AI.resources[resource] += taken
             
-            case "trade":
+            case [catan.Event.TRADE, giving, recieving]:
                 ...
             
             case _:
@@ -312,7 +321,7 @@ while dpg.is_dearpygui_running():
         if update():
             break
         
-    if DEBUG: print("\tturn over, 'passing the dice'")
+    #if DEBUG: print("\tturn over, 'passing the dice'")
     
     # increment turn counter
     current_turn += 1
