@@ -119,7 +119,7 @@ def update() -> bool:
     dpg.render_dearpygui_frame()
     
     if  HAS_HUMAN:
-        ...
+        AI_list[0].update_gui()
     else:
         for ai in AI_list:
             

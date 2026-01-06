@@ -55,6 +55,7 @@ class AI:
         pass
     
     def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
+        # does this ai want to accept a deal from another player?
         return False
      
 class AI_Random(AI):
