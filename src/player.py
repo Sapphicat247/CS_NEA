@@ -3,7 +3,7 @@ from . import catan
 
 import dearpygui.dearpygui as dpg
 
-class Player(AI_Random):
+class Player(AI_Random): # TODO inherit from normal AI
 
     class __NamedDict(dict):
 
@@ -21,7 +21,6 @@ class Player(AI_Random):
     def __init__(self, colour: catan.Colour) -> None:
         super().__init__(colour)
         self.dpg_components = self.__NamedDict()
-
         with dpg.window(width=300, height=400):
             self.dpg_components.vps = dpg.add_text(f"{0} VPs")
             
@@ -50,13 +49,11 @@ class Player(AI_Random):
                                     dpg.add_text(development_card.name.lower().replace("_", " "))
                                     self.dpg_components.update({f"development_card_{development_card.name.lower()}": dpg.add_text("0")})
                 
-                with dpg.tab(label = "turn", show=True):
-                    dpg.add_button(label="build road")
-                    dpg.add_same_line()
-                    dpg.add_button(label="build settlement")
-                    dpg.add_same_line()
-                    dpg.add_button(label="build city")
-                    dpg.add_same_line()
+                with dpg.tab(label = "turn", show=True, ):
+                    with dpg.group(horizontal=True):
+                        dpg.add_button(label="build road")
+                        dpg.add_button(label="build settlement")
+                        dpg.add_button(label="build city")
 
                     dpg.add_button(label="buy development card")
                     

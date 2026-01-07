@@ -757,6 +757,7 @@ class Board:
             if vert.structure.type == Building.CITY:
                 dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/8, fill=(0,0,0,255), parent="verts", color=(0,0,0,0))
             
+            # debug text
             #dpg.draw_text((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), f"{vert_i}", color=(255, 0, 0, 255), size=20, parent="debug")
             
         for edge_i, edge in enumerate(self.edges):
@@ -783,4 +784,4 @@ class Board:
 
 if __name__ == "__main__":
     temp = Board()
-    print(temp.encoding)
+    pprint(temp.encoding)
