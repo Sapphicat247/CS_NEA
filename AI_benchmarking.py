@@ -40,6 +40,10 @@ AI_list: list[AI] = [
     AI_Random(catan.Colour.BLUE),
     AI_Random(catan.Colour.WHITE),
 ]
+
+longest_road = None
+largest_army = None
+
 def get_by_colour(col: catan.Colour) -> AI:
     """returns the AI with this colour"""
     for i in AI_list:
@@ -47,6 +51,9 @@ def get_by_colour(col: catan.Colour) -> AI:
             return i
     
     raise ValueError(f"no AI with colour: {col.name}")
+
+def get_real_vps(ai: AI) -> int:
+    return ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] + 2 if largest_army == ai.colour else 0 + 2 if longest_road == ai.colour else 0
 
 pos_list = [(0,0), (0,1080-400-39), (1920-300-16, 0), (1920-300-16, 1080-400-39)]
 
@@ -123,7 +130,7 @@ def update() -> bool:
     else:
         for ai in AI_list:
             
-            real_vps = ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT]
+            real_vps = get_real_vps(ai)
             dpg.set_value(f"{ai.colour.name}_vps", f"{ai.victory_points} ({real_vps}) VPs")
             
             for resource in catan.Resource:
@@ -280,6 +287,18 @@ while dpg.is_dearpygui_running():
             case [catan.Event.USE_KNIGHT, None]:
                 new_robber_pos, steal_target = current_AI.move_robber(board.safe_copy) # get the robber movement
                 move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
+                
+                # give player the largest army card if they have the most knights
+                current_AI.army_size += 1
+                for ai in AI_list:
+                    if ai != current_AI:
+                        if ai.army_size > current_AI.army_size:
+                            break
+                
+                else:
+                    # no players with a larger or equal army size
+                    largest_army = current_AI.colour
+                    
             
             case [catan.Event.USE_YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
                 if type(resource_1) != catan.Resource or type(resource_2) != catan.Resource:
@@ -330,7 +349,7 @@ while dpg.is_dearpygui_running():
         break
 
 for ai in AI_list:
-    if ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] >= 10:
+    if get_real_vps(ai) >= 10:
         print(f"{ai.ansi_colour}{ai.colour.name} WON!{colours.END}")
 
 while dpg.is_dearpygui_running():

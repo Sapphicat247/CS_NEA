@@ -11,12 +11,15 @@ class AI:
     development_cards: dict[catan.Development_card, int]
     colour: catan.Colour
     ansi_colour: str
+    army_size: int
     
     def __init__(self, colour: catan.Colour) -> None:
         self.victory_points = 0
         self.resources = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
         self.development_cards = {i: 0 for i in catan.Development_card if i != catan.Development_card.NONE}
         self.colour = colour
+        
+        self.army_size = 0
         
         self.ansi_colour = {
             catan.Colour.RED: colours.fg.RED,

@@ -648,7 +648,7 @@ class Board:
         
         self.hexes[pos].hasRobber = True
     
-    def longest_road(self, colour: Colour): # MARK: TODO longest road
+    def max_road_length(self, colour: Colour): # MARK: TODO longest road
         def search(start: int, visited: set[int] = set(), dist = 0) -> int:
             visited.add(start)
             

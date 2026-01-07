@@ -58,10 +58,12 @@ class Player(AI_Random):
                     dpg.add_button(label="build city")
                     dpg.add_same_line()
 
-                    # build ...
-                    # buy dev card
+                    dpg.add_button(label="buy development card")
+                    
                     # use dev card 
-                    # trade
+                    dpg.add_button(label="trade")
+                    
+                    dpg.add_button(label="end turn")
 
     def update_gui(self) -> None:
         dpg.set_value(self.dpg_components.vps, f"{self.victory_points} VPs")
