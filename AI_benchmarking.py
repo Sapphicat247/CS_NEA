@@ -126,7 +126,8 @@ def update() -> bool:
     dpg.render_dearpygui_frame()
     
     if  HAS_HUMAN:
-        AI_list[0].update_gui()
+        for ai in AI_list:
+            ai.update_gui()
     else:
         for ai in AI_list:
             
@@ -353,6 +354,6 @@ for ai in AI_list:
         print(f"{ai.ansi_colour}{ai.colour.name} WON!{colours.END}")
 
 while dpg.is_dearpygui_running():
-    update()
+    dpg.render_dearpygui_frame()
 
 dpg.destroy_context()

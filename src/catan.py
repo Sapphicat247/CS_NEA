@@ -699,6 +699,13 @@ class Board:
         dpg.delete_item("verts", children_only=True) # clear
         dpg.delete_item("debug", children_only=True) # clear
         
+        hex_colour_lookup = {Resource.DESERT: (204, 176, 104, 255),
+                             Resource.WOOD:   (45,  82,  44,  255),
+                             Resource.WOOL:   (82,  230, 78,  255),
+                             Resource.BRICK:  (204, 82,  20,  255),
+                             Resource.ORE:    (115, 131, 156, 255),
+                             Resource.GRAIN:  (237, 237, 69,  255)}
+        
         # get size of each hex
         width = dpg.get_viewport_client_width()
         height = dpg.get_viewport_client_height()
@@ -714,14 +721,7 @@ class Board:
             vert_positions = [self.verts[i].relative_pos for i in hex.verts if i != None]
             vert_positions = [[i[0]*size + center[0], i[1]*size + center[1]] for i in vert_positions]
             
-            colour = {"DESERT": (204, 176, 104, 255),
-                      "WOOD":   (45,  82,  44,  255),
-                      "WOOL":   (82,  230, 78,  255),
-                      "BRICK":  (204, 82,  20,  255),
-                      "ORE":    (115, 131, 156, 255),
-                      "GRAIN":  (237, 237, 69,  255)}[hex.resource.name]
-            
-            dpg.draw_polygon(vert_positions, fill=colour, parent="hexes", color=(0,0,0,0))
+            dpg.draw_polygon(vert_positions, fill=hex_colour_lookup[hex.resource], parent="hexes", color=(0,0,0,0))
             
             # dice number / robber
             if hex.hasRobber:
