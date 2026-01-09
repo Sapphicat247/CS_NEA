@@ -53,7 +53,7 @@ def get_by_colour(col: catan.Colour) -> AI:
     raise ValueError(f"no AI with colour: {col.name}")
 
 def get_real_vps(ai: AI) -> int:
-    return ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] + 2 if largest_army == ai.colour else 0 + 2 if longest_road == ai.colour else 0
+    return ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] + (2 if largest_army == ai.colour else 0) + (2 if longest_road == ai.colour else 0)
 
 pos_list = [(0,0), (0,1080-400-39), (1920-300-16, 0), (1920-300-16, 1080-400-39)]
 
@@ -128,6 +128,7 @@ def update() -> bool:
     if  HAS_HUMAN:
         for ai in AI_list:
             ai.update_gui()
+            
     else:
         for ai in AI_list:
             
@@ -141,9 +142,10 @@ def update() -> bool:
             for development_card in catan.Development_card:
                 if development_card != catan.Development_card.NONE:
                     dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{ai.development_cards[development_card]}")
-            
-            if ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] >= 10:
-                return True
+    
+    for ai in AI_list:
+        if get_real_vps(ai) >= 10:
+            return True
     
     return False
 
@@ -181,10 +183,13 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
 current_turn = 0
 
 while dpg.is_dearpygui_running():
-    update()
+    
     if not HAS_HUMAN:
         while not ready_for_turn and dpg.get_value(auto_run) == False:
             update()
+    
+    if update():
+        break
     
     ready_for_turn = False
     current_AI = AI_list[current_turn]

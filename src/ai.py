@@ -29,7 +29,7 @@ class AI:
         }[self.colour] + colours.bg.RGB(0, 0, 0)
     
     def update_gui(self) -> None:
-        ...
+        pass
 
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         match settlement_number:

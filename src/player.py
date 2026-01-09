@@ -72,3 +72,47 @@ class Player(AI_Random): # TODO inherit from normal AI
         for development_card in catan.Development_card:
             if development_card != catan.Development_card.NONE:
                 dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card]}")
+    
+    def __get_vertex(self) -> int:
+        ...
+    
+    def __get_edge(self) -> int:
+        ...
+    
+    def __get_hex(self) -> int:
+        ...
+    
+    def __select_cards(self) -> dict[catan.Resource, int]:
+        ...
+    
+    def __get_player(self, options: list[catan.Colour]) -> catan.Colour:
+        ...
+    
+    def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
+        match settlement_number:
+            case "first":
+                return self.__get_vertex(), self.__get_edge() # index of vertex, edge to place settlement, road
+        
+            case "second":
+                return self.__get_vertex(), self.__get_edge() # index of vertex, edge to place settlement, road
+            
+            case _ as e:
+                raise ValueError(f"tried to place a strange starting settlement: {e} (this should never happen)")
+    
+    def discard_half(self) -> dict[catan.Resource, int]:
+        return self.__select_cards()
+    
+    def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
+        # called when you roll a 7 or play a knight card
+        # pos, player to steal from
+        pos = self.__get_hex()
+        return pos, self.__get_player(options=[board.verts[i].structure.owner for i in board.hexes[pos].verts])
+    
+    def do_action(self, board: catan.Board) -> catan.Action:
+        # get from the ui tab
+        # enable, get action, if its and end turn, disable it
+        return catan.Action(catan.Event.END_TURN, None)
+    
+    def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
+        # show resources in a dialoge box, and have an accepr/deny button
+        return False

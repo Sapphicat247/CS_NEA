@@ -460,7 +460,7 @@ class Board:
     
     
     def place_settlement(self, owner: Colour, position: int, hand: dict[Resource, int] | None = None, *, need_road: bool = True) -> None:
-        """places settlement
+        """places a settlement
         
         Args:
             owner (`Colour`): the owner of the building
