@@ -17,9 +17,16 @@ class Player(AI_Random): # TODO inherit from normal AI
             super().__setitem__(name, value)
 
     dpg_components: __NamedDict
+    __last_click_pos = None
+    board: catan.Board
 
     def __init__(self, colour: catan.Colour) -> None:
         super().__init__(colour)
+        
+        with dpg.handler_registry():
+            dpg.add_mouse_click_handler(callback=self.__mouse_click)
+        __last_click_pos = None
+        
         self.dpg_components = self.__NamedDict()
         with dpg.window(width=300, height=400):
             self.dpg_components.vps = dpg.add_text(f"{0} VPs")
@@ -73,11 +80,87 @@ class Player(AI_Random): # TODO inherit from normal AI
             if development_card != catan.Development_card.NONE:
                 dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card]}")
     
+    # def a():
+        
+    #     for vert_i, vert in enumerate(self.board.verts):
+    #         pos = [i*size for i in vert.relative_pos]
+            
+    #         if vert.structure.owner != Colour.NONE:
+    #             colour = {"RED":    (255, 0,   0,   255),
+    #                       "ORANGE": (255, 127, 44,  255),
+    #                       "BLUE":   (0,   0,   255, 255),
+    #                       "WHITE":  (255, 255, 255,  255)}[vert.structure.owner.name]
+                
+    #             dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/6, fill=colour, parent="verts", color=(0,0,0,0))
+            
+    #         if vert.structure.type == Building.CITY:
+    #             dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/8, fill=(0,0,0,255), parent="verts", color=(0,0,0,0))
+            
+    
+    def __mouse_click(self, sender, app_data):
+        pos = dpg.get_mouse_pos()
+            
+        self.__last_click_pos = pos
+    
     def __get_vertex(self) -> int:
-        ...
+        self.__last_click_pos = None
+        print("waiting for mouse click")
+        while self.__last_click_pos == None:
+            dpg.render_dearpygui_frame()
+        
+        # get size of each hex
+        width = dpg.get_viewport_client_width()
+        height = dpg.get_viewport_client_height()
+        
+        vert_size = height//8
+        horizontal_size = width//8.660254038 # 5*sqrt(3)
+        
+        size = min(vert_size, horizontal_size)*.9 # side length
+        center = (width//2, height//2)
+
+        hex_positions: list[tuple[float, float]] = []
+        
+        for hex in self.board.hexes:
+            # get positions
+            p0 = self.board.verts[hex.verts[0]].relative_pos
+            p1 = self.board.verts[hex.verts[3]].relative_pos
+            
+            p0 = [p0[0] * size + center[0], p0[1] * size + center[1]]
+            p1 = [p1[0] * size + center[0], p1[1] * size + center[1]]
+
+            hex_positions.append(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2))
+        
+        distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in hex_positions]
+        
+        return distances.index(min(distances))
     
     def __get_edge(self) -> int:
-        ...
+        self.__last_click_pos = None
+        print("waiting for mouse click")
+        while self.__last_click_pos == None:
+            dpg.render_dearpygui_frame()
+        
+        # get size of each hex
+        width = dpg.get_viewport_client_width()
+        height = dpg.get_viewport_client_height()
+        
+        vert_size = height//8
+        horizontal_size = width//8.660254038 # 5*sqrt(3)
+        
+        size = min(vert_size, horizontal_size)*.9 # side length
+        center = (width//2, height//2)
+
+        edge_positions: list[tuple[float, float]] = []
+        
+        for edge_i, edge in enumerate(self.board.edges):
+            
+            p0 = (self.board.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.board.verts[edge.verts[0]].relative_pos[1]*size + center[1])
+            p1 = (self.board.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.board.verts[edge.verts[1]].relative_pos[1]*size + center[1])
+                    
+            edge_positions.append(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2))
+        
+        distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in edge_positions]
+        return distances.index(min(distances))
     
     def __get_hex(self) -> int:
         ...
@@ -89,6 +172,7 @@ class Player(AI_Random): # TODO inherit from normal AI
         ...
     
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
+        self.board = board
         match settlement_number:
             case "first":
                 return self.__get_vertex(), self.__get_edge() # index of vertex, edge to place settlement, road
@@ -103,12 +187,14 @@ class Player(AI_Random): # TODO inherit from normal AI
         return self.__select_cards()
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
+        self.board = board
         # called when you roll a 7 or play a knight card
         # pos, player to steal from
         pos = self.__get_hex()
         return pos, self.__get_player(options=[board.verts[i].structure.owner for i in board.hexes[pos].verts])
     
     def do_action(self, board: catan.Board) -> catan.Action:
+        self.board = board
         # get from the ui tab
         # enable, get action, if its and end turn, disable it
         return catan.Action(catan.Event.END_TURN, None)

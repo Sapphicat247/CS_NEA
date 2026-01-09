@@ -103,9 +103,13 @@ if not HAS_HUMAN:
 
 # MARK: set-up phaze
 # choose starting player
-
+board.draw()
+dpg.render_dearpygui_frame()
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
+        board.draw()
+        dpg.render_dearpygui_frame()
+        
         #print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement and road at: ", end=" ")
         settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, board.safe_copy) # get a move from the AI
         #print(f"{settlement_pos} and {road_pos}{colours.END}")
