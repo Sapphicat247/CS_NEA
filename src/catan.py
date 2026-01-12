@@ -771,8 +771,10 @@ class Board:
                 p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
                     
                 dpg.draw_line(p0, p1, thickness=size/12, color=colour, parent="edges")
-                
-                dpg.draw_text(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2), f"{edge_i}", color=(0, 0, 255, 255), size=20, parent="debug")
+            
+            p0 = (self.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.verts[edge.verts[0]].relative_pos[1]*size + center[1])
+            p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
+            dpg.draw_text(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2), f"{edge_i}", color=(0, 0, 255, 255), size=20, parent="debug")
             
 
     # MARK: misc functions

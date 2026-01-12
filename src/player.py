@@ -18,6 +18,7 @@ class Player(AI_Random): # TODO inherit from normal AI
 
     dpg_components: __NamedDict
     __last_click_pos = None
+    __last_colour_selected = None
     board: catan.Board
 
     def __init__(self, colour: catan.Colour) -> None:
@@ -69,6 +70,14 @@ class Player(AI_Random): # TODO inherit from normal AI
                     
                     dpg.add_button(label="end turn")
 
+        with dpg.window(width=200, height=100, show=False, tag="player selector", label="select a player", no_close=True):
+            dpg.add_button(label="Red", show=False, callback=self.__colour_selected, user_data=catan.Colour.RED, tag="red button")
+            dpg.add_button(label="Orange", show=False, callback=self.__colour_selected, user_data=catan.Colour.ORANGE, tag="orange button")
+            dpg.add_button(label="Blue", show=False, callback=self.__colour_selected, user_data=catan.Colour.BLUE, tag="blue button")
+            dpg.add_button(label="White", show=False, callback=self.__colour_selected, user_data=catan.Colour.WHITE, tag="white button")
+            
+            
+
     def update_gui(self) -> None:
         dpg.set_value(self.dpg_components.vps, f"{self.victory_points} VPs")
         
@@ -80,29 +89,72 @@ class Player(AI_Random): # TODO inherit from normal AI
             if development_card != catan.Development_card.NONE:
                 dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card]}")
     
-    # def a():
-        
-    #     for vert_i, vert in enumerate(self.board.verts):
-    #         pos = [i*size for i in vert.relative_pos]
-            
-    #         if vert.structure.owner != Colour.NONE:
-    #             colour = {"RED":    (255, 0,   0,   255),
-    #                       "ORANGE": (255, 127, 44,  255),
-    #                       "BLUE":   (0,   0,   255, 255),
-    #                       "WHITE":  (255, 255, 255,  255)}[vert.structure.owner.name]
-                
-    #             dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/6, fill=colour, parent="verts", color=(0,0,0,0))
-            
-    #         if vert.structure.type == Building.CITY:
-    #             dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/8, fill=(0,0,0,255), parent="verts", color=(0,0,0,0))
-            
-    
     def __mouse_click(self, sender, app_data):
-        pos = dpg.get_mouse_pos()
-            
-        self.__last_click_pos = pos
+        self.__last_click_pos = dpg.get_mouse_pos(local=False)
     
     def __get_vertex(self) -> int:
+        self.__last_click_pos = None
+        print("waiting for mouse click")
+        while self.__last_click_pos == None:
+            dpg.render_dearpygui_frame()
+        
+        # get size of each hex
+        width = dpg.get_viewport_client_width()
+        height = dpg.get_viewport_client_height()
+        
+        vert_size = height//8
+        horizontal_size = width//8.660254038 # 5*sqrt(3)
+        
+        size = min(vert_size, horizontal_size)*.9 # side length
+        center = (width//2, height//2)
+
+        hex_positions: list[tuple[float, float]] = []
+        
+        for vert in self.board.verts:
+            # get positions
+            
+            p = (vert.relative_pos[0] * size + center[0], vert.relative_pos[1] * size + center[1])
+
+            hex_positions.append(p)
+        
+        distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in hex_positions]
+        
+        selected = distances.index(min(distances))
+        print(f"selected: {selected}")
+        return selected
+    
+    def __get_edge(self) -> int:
+        self.__last_click_pos = None
+        print("waiting for mouse click")
+        while self.__last_click_pos == None:
+            dpg.render_dearpygui_frame()
+        
+        # get size of each hex
+        width = dpg.get_viewport_client_width()
+        height = dpg.get_viewport_client_height()
+        
+        vert_size = height//8
+        horizontal_size = width//8.660254038 # 5*sqrt(3)
+        
+        size = min(vert_size, horizontal_size)*.9 # side length
+        center = (width//2, height//2)
+
+        edge_positions: list[tuple[float, float]] = []
+        
+        for edge_i, edge in enumerate(self.board.edges):
+            
+            p0 = (self.board.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.board.verts[edge.verts[0]].relative_pos[1]*size + center[1])
+            p1 = (self.board.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.board.verts[edge.verts[1]].relative_pos[1]*size + center[1])
+                    
+            edge_positions.append(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2))
+        
+        distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in edge_positions]
+        
+        selected = distances.index(min(distances))
+        print(f"selected: {selected}")
+        return selected
+    
+    def __get_hex(self) -> int:
         self.__last_click_pos = None
         print("waiting for mouse click")
         while self.__last_click_pos == None:
@@ -132,44 +184,31 @@ class Player(AI_Random): # TODO inherit from normal AI
         
         distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in hex_positions]
         
-        return distances.index(min(distances))
-    
-    def __get_edge(self) -> int:
-        self.__last_click_pos = None
-        print("waiting for mouse click")
-        while self.__last_click_pos == None:
-            dpg.render_dearpygui_frame()
-        
-        # get size of each hex
-        width = dpg.get_viewport_client_width()
-        height = dpg.get_viewport_client_height()
-        
-        vert_size = height//8
-        horizontal_size = width//8.660254038 # 5*sqrt(3)
-        
-        size = min(vert_size, horizontal_size)*.9 # side length
-        center = (width//2, height//2)
-
-        edge_positions: list[tuple[float, float]] = []
-        
-        for edge_i, edge in enumerate(self.board.edges):
-            
-            p0 = (self.board.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.board.verts[edge.verts[0]].relative_pos[1]*size + center[1])
-            p1 = (self.board.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.board.verts[edge.verts[1]].relative_pos[1]*size + center[1])
-                    
-            edge_positions.append(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2))
-        
-        distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in edge_positions]
-        return distances.index(min(distances))
-    
-    def __get_hex(self) -> int:
-        ...
+        selected = distances.index(min(distances))
+        print(f"selected: {selected}")
+        return selected
     
     def __select_cards(self) -> dict[catan.Resource, int]:
         ...
     
-    def __get_player(self, options: list[catan.Colour]) -> catan.Colour:
-        ...
+    def __get_player(self, options: set[catan.Colour]) -> catan.Colour:
+        self.__last_colour_selected = None
+        dpg.show_item("player selector")
+        for player in options:
+            dpg.show_item(f"{player.name.lower()} button")
+        print("waiting for player selection")
+        
+        while self.__last_colour_selected == None:
+            dpg.render_dearpygui_frame()
+        
+        dpg.hide_item("player selector")
+        for player in options:
+            dpg.hide_item(f"{player.name.lower()} button")
+        
+        return self.__last_colour_selected
+    
+    def __colour_selected(self, sender, app_data, user_data: catan.Colour):
+        self.__last_colour_selected = user_data
     
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         self.board = board
@@ -183,15 +222,22 @@ class Player(AI_Random): # TODO inherit from normal AI
             case _ as e:
                 raise ValueError(f"tried to place a strange starting settlement: {e} (this should never happen)")
     
-    def discard_half(self) -> dict[catan.Resource, int]:
-        return self.__select_cards()
+    # def discard_half(self) -> dict[catan.Resource, int]:
+    #     return self.__select_cards()
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
         self.board = board
         # called when you roll a 7 or play a knight card
         # pos, player to steal from
-        pos = self.__get_hex()
-        return pos, self.__get_player(options=[board.verts[i].structure.owner for i in board.hexes[pos].verts])
+        options = set()
+        pos = 99999999
+        
+        while not options:
+            pos = self.__get_hex()
+            
+            options = {board.verts[i].structure.owner for i in board.hexes[pos].verts if board.verts[i].structure.owner != catan.Colour.NONE and board.verts[i].structure.owner != self.colour}
+        
+        return pos, self.__get_player(options=options)
     
     def do_action(self, board: catan.Board) -> catan.Action:
         self.board = board

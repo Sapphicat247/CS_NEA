@@ -28,7 +28,7 @@ dpg.create_context()
 dpg.create_viewport(title='Catan', width=1920, height=1080)
 dpg.setup_dearpygui()
 dpg.show_viewport()
-dpg.toggle_viewport_fullscreen()
+# dpg.toggle_viewport_fullscreen()
 # create a board
 board = catan.Board()
 
@@ -103,24 +103,31 @@ if not HAS_HUMAN:
 
 # MARK: set-up phaze
 # choose starting player
+dpg.render_dearpygui_frame()
 board.draw()
 dpg.render_dearpygui_frame()
+
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     while 1:
         board.draw()
         dpg.render_dearpygui_frame()
         
-        #print(f"{COLOUR_LIST[i]}{catan.Colour(i+1).name} is placing it's {j} settlement and road at: ", end=" ")
-        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, board.safe_copy) # get a move from the AI
-        #print(f"{settlement_pos} and {road_pos}{colours.END}")
-        
-        board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
+        while 1:
+            settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, board.safe_copy) # get a move from the AI
 
-        if road_pos not in board.verts[settlement_pos].edges:
-            raise catan.BuildingError("Not connected to correct settlement")
-        
-        board.place_road(catan.Colour(i+1), hand=None, position=road_pos)
+            try:
+                board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
+                
+                if road_pos not in board.verts[settlement_pos].edges:
+                    raise catan.BuildingError("Not connected to correct settlement")
             
+                board.place_road(catan.Colour(i+1), hand=None, position=road_pos)
+                
+            except catan.BuildingError as e:
+                print(e)
+            else:
+                break
+
         AI_list[i].victory_points += 1
         break
 
