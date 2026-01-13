@@ -212,10 +212,11 @@ while dpg.is_dearpygui_running():
     # filter for rolling a 7
     
     if dice == 7:
+        print("7 rolled")
         # hand limit of 7
         for ai in AI_list:
-            temp = sum(ai.resources.values())
-            if temp > 7:
+            if sum(ai.resources.values()) > 7:
+                print(f"{ai.colour.name} has too many cards")
                 
                 discarded = ai.discard_half()
                 if sum(discarded.values()) != sum(ai.resources.values())//2:

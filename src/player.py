@@ -19,14 +19,18 @@ class Player(AI_Random): # TODO inherit from normal AI
     dpg_components: __NamedDict
     __last_click_pos = None
     __last_colour_selected = None
+    
+    __card_selection: dict[catan.Resource, int]
+    __done_card_selection = False
     board: catan.Board
 
     def __init__(self, colour: catan.Colour) -> None:
         super().__init__(colour)
         
+        self.__card_selection = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
+        
         with dpg.handler_registry():
             dpg.add_mouse_click_handler(callback=self.__mouse_click)
-        __last_click_pos = None
         
         self.dpg_components = self.__NamedDict()
         with dpg.window(width=300, height=400):
@@ -58,6 +62,7 @@ class Player(AI_Random): # TODO inherit from normal AI
                                     self.dpg_components.update({f"development_card_{development_card.name.lower()}": dpg.add_text("0")})
                 
                 with dpg.tab(label = "turn", show=True, ):
+                    dpg.add_button(label="roll dice")
                     with dpg.group(horizontal=True):
                         dpg.add_button(label="build road")
                         dpg.add_button(label="build settlement")
@@ -75,6 +80,15 @@ class Player(AI_Random): # TODO inherit from normal AI
             dpg.add_button(label="Orange", show=False, callback=self.__colour_selected, user_data=catan.Colour.ORANGE, tag="orange button")
             dpg.add_button(label="Blue", show=False, callback=self.__colour_selected, user_data=catan.Colour.BLUE, tag="blue button")
             dpg.add_button(label="White", show=False, callback=self.__colour_selected, user_data=catan.Colour.WHITE, tag="white button")
+        
+        with dpg.window(width=200, height=100, show=False, tag="card selector", label="select some cards", no_close=True):
+            for i in catan.Resource:
+                if i != catan.Resource.DESERT:
+                    dpg.add_input_int(label=i.name.lower(), show=True, min_clamped=True, max_clamped=True, min_value=0, user_data=i, callback=self.__resource_changed, tag = f"{i.name.lower()} input")
+            
+            dpg.add_text(label="card selector text")
+            
+            dpg.add_button(tag="card selector button", callback=self.__resource_selection_button_clicked, label="confirm")
             
             
 
@@ -188,9 +202,6 @@ class Player(AI_Random): # TODO inherit from normal AI
         print(f"selected: {selected}")
         return selected
     
-    def __select_cards(self) -> dict[catan.Resource, int]:
-        ...
-    
     def __get_player(self, options: set[catan.Colour]) -> catan.Colour:
         self.__last_colour_selected = None
         dpg.show_item("player selector")
@@ -210,6 +221,46 @@ class Player(AI_Random): # TODO inherit from normal AI
     def __colour_selected(self, sender, app_data, user_data: catan.Colour):
         self.__last_colour_selected = user_data
     
+    def __select_cards(self, number: int = 0) -> dict[catan.Resource, int]:
+        self.__done_card_selection = False
+        self.__card_selection = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT} # reset the card selection
+        for i in catan.Resource:
+            if i != catan.Resource.DESERT:
+                dpg.configure_item(f"{i.name.lower()} input", max_value = self.resources[i])
+                dpg.set_value(f"{i.name.lower()} input", 0)
+                
+        dpg.show_item("card selector")
+        
+        while not self.__done_card_selection:
+            dpg.render_dearpygui_frame()
+            
+        dpg.hide_item("card selector")
+        
+        return self.__card_selection
+    
+    def __resource_changed(self, sender, app_data, user_data: catan.Resource):
+        self.__card_selection[user_data] = dpg.get_value(sender)
+        # calculate new maximums
+        num_selected = sum(self.__card_selection.values())
+        to_remove = sum(self.resources.values()) // 2
+        if num_selected == to_remove:
+            # selected enough
+            print("enough")#dpg.enable_item("card selector button")
+        else:
+            print("not enough")#dpg.disable_item("card selector button")
+        
+        # update maximums
+        missing = to_remove - num_selected
+        for i in catan.Resource:
+            if i != catan.Resource.DESERT:
+                dpg.configure_item(f"{i.name.lower()} input", max_value = min(self.__card_selection[i] + missing, self.resources[i]))
+    
+    def __resource_selection_button_clicked(self, sender, app_data, user_data):
+        if sum(self.__card_selection.values()) == sum(self.resources.values()) // 2:
+            # selected enough cards
+            self.__done_card_selection = True
+    
+    
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         self.board = board
         match settlement_number:
@@ -222,8 +273,8 @@ class Player(AI_Random): # TODO inherit from normal AI
             case _ as e:
                 raise ValueError(f"tried to place a strange starting settlement: {e} (this should never happen)")
     
-    # def discard_half(self) -> dict[catan.Resource, int]:
-    #     return self.__select_cards()
+    def discard_half(self) -> dict[catan.Resource, int]:
+        return self.__select_cards()
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
         self.board = board
