@@ -55,6 +55,12 @@ def get_by_colour(col: catan.Colour) -> AI:
 def get_real_vps(ai: AI) -> int:
     return ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] + (2 if largest_army == ai.colour else 0) + (2 if longest_road == ai.colour else 0)
 
+def copy_of_board():
+    b = board.safe_copy
+    b.player_info = {i: {"res_cards": sum(get_by_colour(i).resources.values()), "dev_cards": sum(get_by_colour(i).development_cards.values())} for i in catan.Colour if i != catan.Colour.NONE}
+    
+    return b
+
 pos_list = [(0,0), (0,1080-400-39), (1920-300-16, 0), (1920-300-16, 1080-400-39)]
 
 if not HAS_HUMAN: # show debug info on AIs
@@ -113,7 +119,7 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
         dpg.render_dearpygui_frame()
         
         while 1:
-            settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, board.safe_copy) # get a move from the AI
+            settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, copy_of_board()) # get a move from the AI
 
             try:
                 board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
@@ -138,7 +144,7 @@ def update() -> bool:
     
     if  HAS_HUMAN:
         for ai in AI_list:
-            ai.update_gui()
+            ai.update_gui(copy_of_board())
             
     else:
         for ai in AI_list:
@@ -229,7 +235,7 @@ while dpg.is_dearpygui_running():
                     ai.resources[card] -= discarded[card]
         
         # robber
-        new_robber_pos, steal_target = current_AI.move_robber(board.safe_copy) # get the robber movement
+        new_robber_pos, steal_target = current_AI.move_robber(copy_of_board()) # get the robber movement
         
         if steal_target == catan.Colour.NONE:
             steal_target = None
@@ -245,14 +251,14 @@ while dpg.is_dearpygui_running():
             for resource in resources[ai.colour].keys():
                 ai.resources[resource] += resources[ai.colour][resource]
         
-            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), board.safe_copy)
+            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), copy_of_board())
     
     if update():
         break
     
     while 1:
         #if DEBUG: print("\tdoing action")
-        action = current_AI.do_action(board.safe_copy)
+        action = current_AI.do_action(copy_of_board())
         
         #print(f"\t{action.event.name}: {action.arg}")
         
@@ -303,7 +309,7 @@ while dpg.is_dearpygui_running():
                     print("no development cards left")
             
             case [catan.Event.USE_KNIGHT, None]:
-                new_robber_pos, steal_target = current_AI.move_robber(board.safe_copy) # get the robber movement
+                new_robber_pos, steal_target = current_AI.move_robber(copy_of_board()) # get the robber movement
                 move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
                 
                 # give player the largest army card if they have the most knights
@@ -349,7 +355,7 @@ while dpg.is_dearpygui_running():
         
         for ai in AI_list:
             if ai != current_AI:
-                ai.on_opponent_action(action, board.safe_copy)
+                ai.on_opponent_action(action, copy_of_board())
         
         board.draw()
         

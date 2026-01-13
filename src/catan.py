@@ -166,6 +166,8 @@ class Board:
     verts: list[Vertex]
     development_cards: list[Development_card]
     
+    player_info: dict[Colour, dict[str, int]]# for each player, records the number of cards they have, 
+    
     # MARK: board construction
     def __init__(self, data: dict | None = None) -> None:
         # optional data dictionary to specify the board layout
@@ -185,6 +187,8 @@ class Board:
         self.hexes = []
         self.edges = []
         self.verts = []
+        
+        self.player_info = {i: {"res_cards": 0, "dev_cards": 0} for i in Colour if i != Colour.NONE}
         
         self.development_cards = [Development_card.KNIGHT]*14 + [Development_card.VICTORY_POINT]*5 + [Development_card.YEAR_OF_PLENTY]*2 + [Development_card.ROAD_BUILDING]*2 + [Development_card.MONOPOLY]*2
         random.shuffle(self.development_cards)

@@ -61,6 +61,21 @@ class Player(AI_Random): # TODO inherit from normal AI
                                     dpg.add_text(development_card.name.lower().replace("_", " "))
                                     self.dpg_components.update({f"development_card_{development_card.name.lower()}": dpg.add_text("0")})
                 
+                with dpg.tab(label = "opponents"):
+                    dpg.add_text(f"\nhands:")
+                    with dpg.table():
+                        dpg.add_table_column(label="player")
+                        dpg.add_table_column(label="resource cards")
+                        dpg.add_table_column(label="developmeant cards")
+                        
+                        for player in catan.Colour:
+                            if player != self.colour:
+                                
+                                with dpg.table_row():
+                                    dpg.add_text(player.name.lower())
+                                    dpg.add_text("0", tag=f"{player.name.lower()}_num_res_cards")
+                                    dpg.add_text("0", tag=f"{player.name.lower()}_num_dev_cards")
+                
                 with dpg.tab(label = "turn", show=True, ):
                     dpg.add_button(label="roll dice")
                     with dpg.group(horizontal=True):
@@ -92,7 +107,7 @@ class Player(AI_Random): # TODO inherit from normal AI
             
             
 
-    def update_gui(self) -> None:
+    def update_gui(self, board: catan.Board) -> None:
         dpg.set_value(self.dpg_components.vps, f"{self.victory_points} VPs")
         
         for resource in catan.Resource:
@@ -102,6 +117,11 @@ class Player(AI_Random): # TODO inherit from normal AI
         for development_card in catan.Development_card:
             if development_card != catan.Development_card.NONE:
                 dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card]}")
+        
+        for player in catan.Colour:
+            if player != self.colour:
+                dpg.set_value(f"{player.name.lower()}_num_res_cards", board.player_info[player]["num_res_cards"])
+                dpg.set_value(f"{player.name.lower()}_num_dev_cards", board.player_info[player]["num_dev_cards"])
     
     def __mouse_click(self, sender, app_data):
         self.__last_click_pos = dpg.get_mouse_pos(local=False)

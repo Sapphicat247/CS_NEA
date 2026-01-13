@@ -28,7 +28,7 @@ class AI:
             catan.Colour.WHITE: colours.fg.WHITE,
         }[self.colour] + colours.bg.RGB(0, 0, 0)
     
-    def update_gui(self) -> None:
+    def update_gui(self, board: catan.Board) -> None:
         pass
 
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
