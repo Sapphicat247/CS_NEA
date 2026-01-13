@@ -12,6 +12,7 @@ import dearpygui.dearpygui as dpg
 # testing
 from pprint import pprint
 
+DEBUG = False
 
 class BuildingError(Exception):
     """error used for when an AI tries to place a building in an invalid location"""
@@ -710,6 +711,11 @@ class Board:
                              Resource.ORE:    (115, 131, 156, 255),
                              Resource.GRAIN:  (237, 237, 69,  255)}
         
+        player_colour_lookup = {Colour.RED:    (255, 0,   0,   255),
+                                Colour.ORANGE: (255, 127, 44,  255),
+                                Colour.BLUE:   (0,   0,   255, 255),
+                                Colour.WHITE:  (255, 255, 255,  255)}
+        
         # get size of each hex
         width = dpg.get_viewport_client_width()
         height = dpg.get_viewport_client_height()
@@ -745,16 +751,13 @@ class Board:
                 
             
             # debug text
-            dpg.draw_text((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), f"{hex_i}", color=(0, 255, 0, 255), size=size/8, parent="debug")
+            if DEBUG: dpg.draw_text((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), f"{hex_i}", color=(0, 255, 0, 255), size=size/8, parent="debug")
         
         for vert_i, vert in enumerate(self.verts):
             pos = [i*size for i in vert.relative_pos]
             
             if vert.structure.owner != Colour.NONE:
-                colour = {"RED":    (255, 0,   0,   255),
-                          "ORANGE": (255, 127, 44,  255),
-                          "BLUE":   (0,   0,   255, 255),
-                          "WHITE":  (255, 255, 255,  255)}[vert.structure.owner.name]
+                colour = player_colour_lookup[vert.structure.owner]
                 
                 dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/6, fill=colour, parent="verts", color=(0,0,0,0))
             
@@ -762,23 +765,21 @@ class Board:
                 dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/8, fill=(0,0,0,255), parent="verts", color=(0,0,0,0))
             
             # debug text
-            dpg.draw_text((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), f"{vert_i}", color=(255, 0, 0, 255), size=20, parent="debug")
+            if DEBUG: dpg.draw_text((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), f"{vert_i}", color=(255, 0, 0, 255), size=20, parent="debug")
             
         for edge_i, edge in enumerate(self.edges):
             if edge.structure.owner != Colour.NONE:
-                colour = {"RED":    (255, 0,   0,   255),
-                          "ORANGE": (255, 127, 0,   255),
-                          "BLUE":   (0,   0,   255, 255),
-                          "WHITE":  (255, 255, 255,  255)}[edge.structure.owner.name]
+                colour = player_colour_lookup[edge.structure.owner]
                 
                 p0 = (self.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.verts[edge.verts[0]].relative_pos[1]*size + center[1])
                 p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
                     
                 dpg.draw_line(p0, p1, thickness=size/12, color=colour, parent="edges")
             
-            p0 = (self.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.verts[edge.verts[0]].relative_pos[1]*size + center[1])
-            p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
-            dpg.draw_text(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2), f"{edge_i}", color=(0, 0, 255, 255), size=20, parent="debug")
+            if DEBUG: 
+                p0 = (self.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.verts[edge.verts[0]].relative_pos[1]*size + center[1])
+                p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
+                dpg.draw_text(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2), f"{edge_i}", color=(0, 0, 255, 255), size=20, parent="debug")
             
 
     # MARK: misc functions

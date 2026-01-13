@@ -119,9 +119,9 @@ class Player(AI_Random): # TODO inherit from normal AI
                 dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card]}")
         
         for player in catan.Colour:
-            if player != self.colour:
-                dpg.set_value(f"{player.name.lower()}_num_res_cards", board.player_info[player]["num_res_cards"])
-                dpg.set_value(f"{player.name.lower()}_num_dev_cards", board.player_info[player]["num_dev_cards"])
+            if player != self.colour and player != catan.Colour.NONE:
+                dpg.set_value(f"{player.name.lower()}_num_res_cards", board.player_info[player]["res_cards"])
+                dpg.set_value(f"{player.name.lower()}_num_dev_cards", board.player_info[player]["dev_cards"])
     
     def __mouse_click(self, sender, app_data):
         self.__last_click_pos = dpg.get_mouse_pos(local=False)
