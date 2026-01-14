@@ -131,6 +131,7 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
                 
             except catan.BuildingError as e:
                 print(e)
+                board.delete_settlement(settlement_pos)
             else:
                 break
 

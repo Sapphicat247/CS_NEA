@@ -33,7 +33,7 @@ class Player(AI_Random): # TODO inherit from normal AI
             dpg.add_mouse_click_handler(callback=self.__mouse_click)
         
         self.dpg_components = self.__NamedDict()
-        with dpg.window(width=300, height=400):
+        with dpg.window(width=300, height=400, pos=(0,0)):
             self.dpg_components.vps = dpg.add_text(f"{0} VPs")
             
             with dpg.tab_bar():
@@ -69,7 +69,7 @@ class Player(AI_Random): # TODO inherit from normal AI
                         dpg.add_table_column(label="developmeant cards")
                         
                         for player in catan.Colour:
-                            if player != self.colour:
+                            if player != self.colour and player != catan.Colour.NONE:
                                 
                                 with dpg.table_row():
                                     dpg.add_text(player.name.lower())
@@ -90,13 +90,13 @@ class Player(AI_Random): # TODO inherit from normal AI
                     
                     dpg.add_button(label="end turn")
 
-        with dpg.window(width=200, height=100, show=False, tag="player selector", label="select a player", no_close=True):
+        with dpg.window(width=150, height=100, show=False, tag="player selector", label="select a player", no_close=True, pos=(300,0)):
             dpg.add_button(label="Red", show=False, callback=self.__colour_selected, user_data=catan.Colour.RED, tag="red button")
             dpg.add_button(label="Orange", show=False, callback=self.__colour_selected, user_data=catan.Colour.ORANGE, tag="orange button")
             dpg.add_button(label="Blue", show=False, callback=self.__colour_selected, user_data=catan.Colour.BLUE, tag="blue button")
             dpg.add_button(label="White", show=False, callback=self.__colour_selected, user_data=catan.Colour.WHITE, tag="white button")
         
-        with dpg.window(width=200, height=100, show=False, tag="card selector", label="select some cards", no_close=True):
+        with dpg.window(width=250, height=200, show=False, tag="card selector", label="select some cards", no_close=True, pos=(300, 0)):
             for i in catan.Resource:
                 if i != catan.Resource.DESERT:
                     dpg.add_input_int(label=i.name.lower(), show=True, min_clamped=True, max_clamped=True, min_value=0, user_data=i, callback=self.__resource_changed, tag = f"{i.name.lower()} input")
