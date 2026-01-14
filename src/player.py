@@ -54,8 +54,8 @@ class Player(AI_Random): # TODO inherit from normal AI
                         dpg.add_table_column()
                         dpg.add_table_column()
                         
-                        for development_card in catan.Development_card:
-                            if development_card != catan.Development_card.NONE:
+                        for development_card in catan.DevelopmentCard:
+                            if development_card != catan.DevelopmentCard.NONE:
                                 
                                 with dpg.table_row():
                                     dpg.add_text(development_card.name.lower().replace("_", " "))
@@ -112,9 +112,9 @@ class Player(AI_Random): # TODO inherit from normal AI
             if resource != catan.Resource.DESERT:
                 dpg.set_value(self.dpg_components[f"resource_{resource.name.lower()}"], f"{self.resources[resource]}")
         
-        for development_card in catan.Development_card:
-            if development_card != catan.Development_card.NONE:
-                dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card]}")
+        for development_card in catan.DevelopmentCard:
+            if development_card != catan.DevelopmentCard.NONE:
+                dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card] + self.development_cards_on_cooldown[development_card]}")
         
         for player in catan.Colour:
             if player != self.colour and player != catan.Colour.NONE:

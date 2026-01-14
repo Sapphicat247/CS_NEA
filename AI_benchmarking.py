@@ -53,11 +53,11 @@ def get_by_colour(col: catan.Colour) -> AI:
     raise ValueError(f"no AI with colour: {col.name}")
 
 def get_real_vps(ai: AI) -> int:
-    return ai.victory_points + ai.development_cards[catan.Development_card.VICTORY_POINT] + (2 if largest_army == ai.colour else 0) + (2 if longest_road == ai.colour else 0)
+    return ai.victory_points + ai.development_cards[catan.DevelopmentCard.VICTORY_POINT] + (2 if largest_army == ai.colour else 0) + (2 if longest_road == ai.colour else 0)
 
 def copy_of_board():
     b = board.safe_copy
-    b.player_info = {i: {"res_cards": sum(get_by_colour(i).resources.values()), "dev_cards": sum(get_by_colour(i).development_cards.values())} for i in catan.Colour if i != catan.Colour.NONE}
+    b.player_info = {i: {"res_cards": sum(get_by_colour(i).resources.values()), "dev_cards": sum(get_by_colour(i).development_cards.values()) + sum(get_by_colour(i).development_cards_on_cooldown.values())} for i in catan.Colour if i != catan.Colour.NONE}
     
     return b
 
@@ -87,8 +87,8 @@ if not HAS_HUMAN: # show debug info on AIs
                         dpg.add_table_column()
                         dpg.add_table_column()
                         
-                        for development_card in catan.Development_card:
-                            if development_card != catan.Development_card.NONE:
+                        for development_card in catan.DevelopmentCard:
+                            if development_card != catan.DevelopmentCard.NONE:
                                 
                                 with dpg.table_row():
                                     dpg.add_text(development_card.name)
@@ -157,9 +157,9 @@ def update() -> bool:
                 if resource != catan.Resource.DESERT:
                     dpg.set_value(f"{ai.colour.name}_{resource.name}_number", f"{ai.resources[resource]}")
             
-            for development_card in catan.Development_card:
-                if development_card != catan.Development_card.NONE:
-                    dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{ai.development_cards[development_card]}")
+            for development_card in catan.DevelopmentCard:
+                if development_card != catan.DevelopmentCard.NONE:
+                    dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{ai.development_cards[development_card] + ai.development_cards_on_cooldown[development_card]}")
     
     for ai in AI_list:
         if get_real_vps(ai) >= 10:
@@ -257,6 +257,11 @@ while dpg.is_dearpygui_running():
     if update():
         break
     
+    # give the ai it's dev_cards which are on cooldown
+    for development_card in catan.DevelopmentCard:
+        current_AI.development_cards[development_card] += current_AI.development_cards_on_cooldown[development_card]
+        current_AI.development_cards_on_cooldown[development_card] = 0
+    
     while 1:
         #if DEBUG: print("\tdoing action")
         action = current_AI.do_action(copy_of_board())
@@ -305,11 +310,19 @@ while dpg.is_dearpygui_running():
                 
                 
                 try:
-                    current_AI.development_cards[board.development_cards.pop()] += 1 # give AI a development card
+                    # give AI a development card
+                    card = board.development_cards.pop()
+                    if card == catan.DevelopmentCard.VICTORY_POINT:
+                        current_AI.development_cards[card] += 1
+                    else:
+                        current_AI.development_cards_on_cooldown[card] += 1
                 except IndexError:
                     print("no development cards left")
             
             case [catan.Event.USE_KNIGHT, None]:
+                if current_AI.development_cards[catan.DevelopmentCard.KNIGHT] == 0:
+                    # dont actualy have the card
+                    raise ValueError("you dont have that card")
                 new_robber_pos, steal_target = current_AI.move_robber(copy_of_board()) # get the robber movement
                 move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
                 
@@ -326,6 +339,9 @@ while dpg.is_dearpygui_running():
                     
             
             case [catan.Event.USE_YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
+                if current_AI.development_cards[catan.DevelopmentCard.YEAR_OF_PLENTY] == 0:
+                    # dont actualy have the card
+                    raise ValueError("you dont have that card")
                 if type(resource_1) != catan.Resource or type(resource_2) != catan.Resource:
                     raise ValueError(f"{resource_1} or {resource_2} is not a Resource")
                 
@@ -333,10 +349,16 @@ while dpg.is_dearpygui_running():
                 current_AI.resources[resource_2] += 1
                 
             case [catan.Event.USE_ROAD_BUILDING, [pos_1, pos_2]] if type(pos_1) == int and type(pos_2) == int:
+                if current_AI.development_cards[catan.DevelopmentCard.ROAD_BUILDING] == 0:
+                    # dont actualy have the card
+                    raise ValueError("you dont have that card")
                 board.place_road(current_AI.colour, hand=None, position=pos_1)
                 board.place_road(current_AI.colour, hand=None, position=pos_2)
                 
             case [catan.Event.USE_MONOPOLY, resource] if type(resource) == catan.Resource:
+                if current_AI.development_cards[catan.DevelopmentCard.MONOPOLY] == 0:
+                    # dont actualy have the card
+                    raise ValueError("you dont have that card")
                 taken = 0
                 for ai in AI_list:
                     if ai != current_AI:

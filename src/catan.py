@@ -54,7 +54,7 @@ class Resource(Enum):
     ORE = 4
     GRAIN = 5
 
-class Development_card(Enum):
+class DevelopmentCard(Enum):
     """component of the actual board game"""
     NONE = 0
     KNIGHT = 1
@@ -165,7 +165,7 @@ class Board:
     hexes: list[Hex]
     edges: list[Edge]
     verts: list[Vertex]
-    development_cards: list[Development_card]
+    development_cards: list[DevelopmentCard]
     
     player_info: dict[Colour, dict[str, int]]# for each player, records the number of cards they have, 
     
@@ -191,7 +191,7 @@ class Board:
         
         self.player_info = {i: {"res_cards": 0, "dev_cards": 0} for i in Colour if i != Colour.NONE}
         
-        self.development_cards = [Development_card.KNIGHT]*14 + [Development_card.VICTORY_POINT]*5 + [Development_card.YEAR_OF_PLENTY]*2 + [Development_card.ROAD_BUILDING]*2 + [Development_card.MONOPOLY]*2
+        self.development_cards = [DevelopmentCard.KNIGHT]*14 + [DevelopmentCard.VICTORY_POINT]*5 + [DevelopmentCard.YEAR_OF_PLENTY]*2 + [DevelopmentCard.ROAD_BUILDING]*2 + [DevelopmentCard.MONOPOLY]*2
         random.shuffle(self.development_cards)
         
         # set hexes on hexes ===========================================================================================================
@@ -787,7 +787,7 @@ class Board:
     def safe_copy(self):
         """hide info the AIs are not allowed to see"""
         new_board = deepcopy(self)
-        new_board.development_cards = [Development_card.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
+        new_board.development_cards = [DevelopmentCard.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
         
         return new_board
     

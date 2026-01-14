@@ -8,7 +8,7 @@ class AI:
     # AIs are not trusted to make legal moves, however the AI will have to avoid infinite loops by always attempting an illegal move
     victory_points: int
     resources: dict[catan.Resource, int]
-    development_cards: dict[catan.Development_card, int]
+    development_cards: dict[catan.DevelopmentCard, int]
     colour: catan.Colour
     ansi_colour: str
     army_size: int
@@ -16,7 +16,8 @@ class AI:
     def __init__(self, colour: catan.Colour) -> None:
         self.victory_points = 0
         self.resources = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
-        self.development_cards = {i: 0 for i in catan.Development_card if i != catan.Development_card.NONE}
+        self.development_cards = {i: 0 for i in catan.DevelopmentCard if i != catan.DevelopmentCard.NONE}
+        self.development_cards_on_cooldown = {i: 0 for i in catan.DevelopmentCard if i != catan.DevelopmentCard.NONE}
         self.colour = colour
         
         self.army_size = 0
