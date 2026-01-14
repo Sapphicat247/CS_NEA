@@ -33,11 +33,11 @@ class Player(AI_Random): # TODO inherit from normal AI
             dpg.add_mouse_click_handler(callback=self.__mouse_click)
         
         self.dpg_components = self.__NamedDict()
-        with dpg.window(width=300, height=400, pos=(0,0)):
+        with dpg.window(width=500, height=400, pos=(0,0)):
             self.dpg_components.vps = dpg.add_text(f"{0} VPs")
             
             with dpg.tab_bar():
-                with dpg.tab(label = "hand"):
+                with dpg.tab(label = "Hand"):
                     dpg.add_text(f"\nresources:")
                     with dpg.table(header_row=False):
                         dpg.add_table_column()
@@ -61,7 +61,7 @@ class Player(AI_Random): # TODO inherit from normal AI
                                     dpg.add_text(development_card.name.lower().replace("_", " "))
                                     self.dpg_components.update({f"development_card_{development_card.name.lower()}": dpg.add_text("0")})
                 
-                with dpg.tab(label = "opponents"):
+                with dpg.tab(label = "Opponents"):
                     dpg.add_text(f"\nhands:")
                     with dpg.table():
                         dpg.add_table_column(label="player")
@@ -76,14 +76,19 @@ class Player(AI_Random): # TODO inherit from normal AI
                                     dpg.add_text("0", tag=f"{player.name.lower()}_num_res_cards")
                                     dpg.add_text("0", tag=f"{player.name.lower()}_num_dev_cards")
                 
-                with dpg.tab(label = "turn", show=True, ):
-                    dpg.add_button(label="roll dice")
+                with dpg.tab(label = "Turn", show=True, ):
+                    dpg.add_button(label="Roll Dice")
                     with dpg.group(horizontal=True):
-                        dpg.add_button(label="build road")
-                        dpg.add_button(label="build settlement")
-                        dpg.add_button(label="build city")
+                        dpg.add_button(label="Build Road")
+                        dpg.add_button(label="Build Settlement")
+                        dpg.add_button(label="Build City")
 
                     dpg.add_button(label="buy development card")
+                    dpg.add_text("use development card: ")
+                    with dpg.group(horizontal=True):
+                        for i in catan.DevelopmentCard:
+                            if i != catan.DevelopmentCard.NONE:
+                                dpg.add_button(label=f"{i.name.lower().replace("_", " ").capitalize()}")
                     
                     # use dev card 
                     dpg.add_button(label="trade")

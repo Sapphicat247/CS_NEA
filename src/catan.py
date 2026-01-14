@@ -658,17 +658,21 @@ class Board:
             visited.add(start)
             
             max_distance = 0
+            v1, v2 = self.edges[start].verts
             
-            for vert in self.edges[start].verts:
-                for edge in self.verts[vert].edges:
-                    if edge not in visited and edge is not None:
-                        # new edge, not yet seen
-                        # if it is longer than the current max, set the current max
-                        max_distance = max(max_distance, search(edge, visited, dist))
-                        # mark edge as visited
-                        visited.add(edge)
+            for edge_i, edge in enumerate(self.verts[v1].edges + self.verts[v1].edges):
+                if edge is not None:
+                    ...
+                
             
             return max_distance
+
+        max_distance = 0
+        
+        for start_edge_i, start_edge in enumerate(self.edges):
+            if start_edge.structure.owner == colour:
+                # found a road of right colour
+                max_distance = max(max_distance, search(start_edge_i))
         
         max_length = 0
         

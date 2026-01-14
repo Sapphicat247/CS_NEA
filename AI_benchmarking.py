@@ -259,8 +259,9 @@ while dpg.is_dearpygui_running():
     
     # give the ai it's dev_cards which are on cooldown
     for development_card in catan.DevelopmentCard:
-        current_AI.development_cards[development_card] += current_AI.development_cards_on_cooldown[development_card]
-        current_AI.development_cards_on_cooldown[development_card] = 0
+        if development_card != catan.DevelopmentCard.NONE:
+            current_AI.development_cards[development_card] += current_AI.development_cards_on_cooldown[development_card]
+            current_AI.development_cards_on_cooldown[development_card] = 0
     
     while 1:
         #if DEBUG: print("\tdoing action")
@@ -323,6 +324,7 @@ while dpg.is_dearpygui_running():
                 if current_AI.development_cards[catan.DevelopmentCard.KNIGHT] == 0:
                     # dont actualy have the card
                     raise ValueError("you dont have that card")
+
                 new_robber_pos, steal_target = current_AI.move_robber(copy_of_board()) # get the robber movement
                 move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
                 
@@ -342,8 +344,6 @@ while dpg.is_dearpygui_running():
                 if current_AI.development_cards[catan.DevelopmentCard.YEAR_OF_PLENTY] == 0:
                     # dont actualy have the card
                     raise ValueError("you dont have that card")
-                if type(resource_1) != catan.Resource or type(resource_2) != catan.Resource:
-                    raise ValueError(f"{resource_1} or {resource_2} is not a Resource")
                 
                 current_AI.resources[resource_1] += 1
                 current_AI.resources[resource_2] += 1
@@ -352,6 +352,7 @@ while dpg.is_dearpygui_running():
                 if current_AI.development_cards[catan.DevelopmentCard.ROAD_BUILDING] == 0:
                     # dont actualy have the card
                     raise ValueError("you dont have that card")
+
                 board.place_road(current_AI.colour, hand=None, position=pos_1)
                 board.place_road(current_AI.colour, hand=None, position=pos_2)
                 
@@ -359,6 +360,7 @@ while dpg.is_dearpygui_running():
                 if current_AI.development_cards[catan.DevelopmentCard.MONOPOLY] == 0:
                     # dont actualy have the card
                     raise ValueError("you dont have that card")
+
                 taken = 0
                 for ai in AI_list:
                     if ai != current_AI:
