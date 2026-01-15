@@ -12,7 +12,7 @@ import dearpygui.dearpygui as dpg
 # testing
 from pprint import pprint
 
-DEBUG = False
+DEBUG = True
 
 class BuildingError(Exception):
     """error used for when an AI tries to place a building in an invalid location"""
@@ -654,38 +654,47 @@ class Board:
         self.hexes[pos].hasRobber = True
     
     def max_road_length(self, colour: Colour): # MARK: TODO longest road
-        def search(start: int, visited: set[int] = set(), dist = 0) -> int:
-            visited.add(start)
+        # for each start:
+            # find adjacent roads
+            # mach each road to a length (takig into account already visited edges)
+            # return the longest one
+            
+            # so it returns (length, [end, ..., start])
+        
+        
+        def search(start: int, visited: set[int] = set(), prev_vert: int = -1) -> tuple[int, list[int]]:
+            visited.add(start) # add to set of visited indexes
             
             max_distance = 0
-            v1, v2 = self.edges[start].verts
+            max_path = []
             
-            for edge_i, edge in enumerate(self.verts[v1].edges + self.verts[v1].edges):
-                if edge is not None:
-                    ...
-                
+            for v in self.edges[start].verts:
+                if (self.verts[v].structure.owner == Colour.NONE or self.verts[v].structure.owner == colour) and v != prev_vert:
+                    # un-clamed or own vertex
             
-            return max_distance
+                    for edge in self.verts[v].edges:
+                        if edge is not None and edge not in visited and self.edges[edge].structure.owner == colour:
+                            # new edge to try
+                            distance, new_path = search(edge, visited, v)
+                            if distance > max_distance:
+                                max_distance = distance
+                                max_path = new_path
+                        
+            
+            return max_distance + 1, max_path + [start]
 
         max_distance = 0
+        max_path = []
         
         for start_edge_i, start_edge in enumerate(self.edges):
             if start_edge.structure.owner == colour:
                 # found a road of right colour
-                max_distance = max(max_distance, search(start_edge_i))
+                distance, new_path = search(start_edge_i)
+                if distance > max_distance:
+                        max_distance = distance
+                        max_path = new_path
         
-        max_length = 0
-        
-        # iterate over each road of that colour
-        for i, edge in enumerate(self.edges):
-            if edge.structure.owner != colour:
-                # not owned by this person
-                continue
-            
-            max_length = max(max_length, search(i))
-            
-            # correct owner
-            # do a depth first search
+        return max_distance, max_path
             
             
     
@@ -797,5 +806,25 @@ class Board:
     
 
 if __name__ == "__main__":
-    temp = Board()
-    pprint(temp.encoding)
+    dpg.create_context()
+
+    # init viewport
+    dpg.create_viewport(title='Catan', width=1920, height=1080)
+    dpg.setup_dearpygui()
+    dpg.show_viewport()
+    dpg.toggle_viewport_fullscreen()
+    
+    board = Board()
+    
+    dpg.render_dearpygui_frame()
+    board.draw()
+    dpg.render_dearpygui_frame()
+    while 1:
+        v = int(input())
+        board.edges[v].structure = Structure(Colour.WHITE, Building.ROAD) if board.edges[v].structure.owner == Colour.NONE else Structure(Colour.NONE, Building.EMPTY)
+        
+        board.draw()
+        dpg.render_dearpygui_frame()
+        
+        print(board.max_road_length(Colour.WHITE))
+        

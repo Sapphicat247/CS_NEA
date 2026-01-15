@@ -7,7 +7,7 @@ import colours
 import dearpygui.dearpygui as dpg
 import random
 
-HAS_HUMAN = True
+HAS_HUMAN = False
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
@@ -28,7 +28,7 @@ dpg.create_context()
 dpg.create_viewport(title='Catan', width=1920, height=1080)
 dpg.setup_dearpygui()
 dpg.show_viewport()
-# dpg.toggle_viewport_fullscreen()
+dpg.toggle_viewport_fullscreen()
 # create a board
 board = catan.Board()
 
@@ -61,7 +61,7 @@ def copy_of_board():
     
     return b
 
-pos_list = [(0,0), (0,1080-400-39), (1920-300-16, 0), (1920-300-16, 1080-400-39)]
+pos_list = [(0,0), (0,1440-400-39), (2560-300-16, 0), (2560-300-16, 1440-400-39)]
 
 if not HAS_HUMAN: # show debug info on AIs
 
@@ -300,6 +300,10 @@ while dpg.is_dearpygui_running():
                 # can place road
                 current_AI.resources[catan.Resource.BRICK] -= 1
                 current_AI.resources[catan.Resource.WOOD] -= 1
+                
+                update()
+                
+                print(f"{current_AI.colour.name}'s longest road is {board.max_road_length(current_AI.colour)} tiles long")
                 
             case [catan.Event.BUY_DEV_CARD, None]:
                 if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
