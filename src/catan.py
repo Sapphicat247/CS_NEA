@@ -166,7 +166,10 @@ class Board:
     verts: list[Vertex]
     development_cards: list[DevelopmentCard]
     
-    player_info: dict[Colour, dict[str, int]]# for each player, records the number of cards they have, 
+    player_info: dict[Colour, dict[str, int]]# for each player, records the number of each type of card they have
+    longest_road: Colour
+    largest_army: Colour
+    
     
     # MARK: board construction
     def __init__(self, data: dict | None = None) -> None:
@@ -189,6 +192,8 @@ class Board:
         self.verts = []
         
         self.player_info = {i: {"res_cards": 0, "dev_cards": 0} for i in Colour if i != Colour.NONE}
+        self.longest_road = Colour.NONE
+        self.largest_army = Colour.NONE
         
         self.development_cards = [DevelopmentCard.KNIGHT]*14 + [DevelopmentCard.VICTORY_POINT]*5 + [DevelopmentCard.YEAR_OF_PLENTY]*2 + [DevelopmentCard.ROAD_BUILDING]*2 + [DevelopmentCard.MONOPOLY]*2
         random.shuffle(self.development_cards)
@@ -392,7 +397,7 @@ class Board:
             positions = [sum(gaps[:i+1]) + 42 + i for i in range(len(gaps))]
             
             for i in positions:
-                self.edges[i].port = Port(resources.pop()) # implement direction MARK: TODO
+                self.edges[i].port = Port(resources.pop())
         
         else:
             # hexes
@@ -404,7 +409,7 @@ class Board:
             
             # ports
             for port in data["ports"]:
-                self.edges[port["position"]].port = Port(Resource[port["resource"]]) # implement direction MARK: TODO
+                self.edges[port["position"]].port = Port(Resource[port["resource"]])
 
     # MARK: Placement
     def can_place(self, building: Building, owner: Colour, position: int, hand: dict[Resource, int] | None = None, *, need_road: bool = True) -> bool:
@@ -617,8 +622,12 @@ class Board:
     
     # MARK: Game concepts
     
-    def get_resources(self, dice_value: int) -> dict[Colour, dict[Resource, int]]:
+    def get_resources(self, dice_value: int | None, only_vert: int | None = None) -> dict[Colour, dict[Resource, int]]:
         """works out which AI would recieve what resources, given a dice roll"""
+        
+        assert dice_value is None or 1 <= dice_value <= 12
+        assert dice_value is None or dice_value != 7
+        
         resources = {
             Colour.RED: {i: 0 for i in Resource if i != Resource.DESERT},
             Colour.ORANGE: {i: 0 for i in Resource if i != Resource.DESERT},
@@ -627,10 +636,10 @@ class Board:
         }
         
         for hex in self.hexes:
-            if hex.diceValue == dice_value and not hex.hasRobber:
+            if (hex.diceValue == dice_value and not hex.hasRobber) or (dice_value is None and hex.diceValue != 7):
                 # resource producing hex
                 for vert_i in hex.verts:
-                    if vert_i != None:
+                    if vert_i is not None and (only_vert is None or vert_i == only_vert):
                         # vertex that could have settlement
                         vert = self.verts[vert_i]
                         if vert.structure.type == Building.SETTLEMENT:

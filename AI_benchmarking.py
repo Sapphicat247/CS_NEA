@@ -41,9 +41,6 @@ AI_list: list[AI] = [
     AI_Random(catan.Colour.WHITE),
 ]
 
-longest_road = None
-largest_army = None
-
 def get_by_colour(col: catan.Colour) -> AI:
     """returns the AI with this colour"""
     for i in AI_list:
@@ -53,7 +50,7 @@ def get_by_colour(col: catan.Colour) -> AI:
     raise ValueError(f"no AI with colour: {col.name}")
 
 def get_real_vps(ai: AI) -> int:
-    return ai.victory_points + ai.development_cards[catan.DevelopmentCard.VICTORY_POINT] + (2 if largest_army == ai.colour else 0) + (2 if longest_road == ai.colour else 0)
+    return ai.victory_points + ai.development_cards[catan.DevelopmentCard.VICTORY_POINT] + (2 if board.largest_army == ai.colour else 0) + (2 if board.longest_road == ai.colour else 0)
 
 def copy_of_board():
     b = board.safe_copy
@@ -114,29 +111,32 @@ board.draw()
 dpg.render_dearpygui_frame()
 
 for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
+    board.draw()
+    dpg.render_dearpygui_frame()
+    settlement_pos = 99999
     while 1:
-        board.draw()
-        dpg.render_dearpygui_frame()
-        
-        while 1:
-            settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, copy_of_board()) # get a move from the AI
+        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, copy_of_board()) # get a move from the AI
 
-            try:
-                board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
-                
-                if road_pos not in board.verts[settlement_pos].edges:
-                    raise catan.BuildingError("Not connected to correct settlement")
+        try:
+            board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
             
-                board.place_road(catan.Colour(i+1), hand=None, position=road_pos)
-                
-            except catan.BuildingError as e:
-                print(e)
-                board.delete_settlement(settlement_pos)
-            else:
-                break
+            if road_pos not in board.verts[settlement_pos].edges:
+                raise catan.BuildingError("Not connected to correct settlement")
+        
+            board.place_road(catan.Colour(i+1), hand=None, position=road_pos)
+            
+        except catan.BuildingError as e:
+            print(e)
+            board.delete_settlement(settlement_pos)
+        else:
+            break
 
-        AI_list[i].victory_points += 1
-        break
+    AI_list[i].victory_points += 1
+    if j == "second":
+        # give starting resources
+        resources = board.get_resources(None, settlement_pos)
+        AI_list[i].resources = resources[AI_list[i].colour]
+        
 
 def update() -> bool:
     """update GUI"""
@@ -341,7 +341,8 @@ while dpg.is_dearpygui_running():
                 
                 else:
                     # no players with a larger or equal army size
-                    largest_army = current_AI.colour
+                    board.largest_army = current_AI.colour
+                    print(f"{current_AI.colour.name.lower()} got the largest army card")
                     
             
             case [catan.Event.USE_YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:

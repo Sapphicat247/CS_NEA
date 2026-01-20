@@ -43,7 +43,7 @@ class Player(AI):
         
         self.dpg_components = self.__NamedDict()
         with dpg.window(width=500, height=400, pos=(0,0)):
-            self.dpg_components.vps = dpg.add_text(f"{0} VPs")
+            dpg.add_text(f"{0} VPs", tag="player_vps_and_info")
             
             with dpg.tab_bar():
                 with dpg.tab(label = "Hand"):
@@ -71,7 +71,6 @@ class Player(AI):
                                     self.dpg_components.update({f"development_card_{development_card.name.lower()}": dpg.add_text("0")})
                 
                 with dpg.tab(label = "Opponents"):
-                    dpg.add_text(f"\nhands:")
                     with dpg.table():
                         dpg.add_table_column(label="player")
                         dpg.add_table_column(label="resource cards")
@@ -81,7 +80,9 @@ class Player(AI):
                             if player != self.colour and player != catan.Colour.NONE:
                                 
                                 with dpg.table_row():
-                                    dpg.add_text(player.name.lower())
+                                    with dpg.group(horizontal=True):
+                                        dpg.add_text(player.name.lower())
+                                        dpg.add_text("", tag=f"{player.name.lower()}_extras")
                                     dpg.add_text("0", tag=f"{player.name.lower()}_num_res_cards")
                                     dpg.add_text("0", tag=f"{player.name.lower()}_num_dev_cards")
                 
@@ -143,7 +144,7 @@ class Player(AI):
         
 
     def update_gui(self, board: catan.Board) -> None:
-        dpg.set_value(self.dpg_components.vps, f"{self.victory_points} VPs")
+        dpg.set_value("player_vps_and_info", f"{self.victory_points} VPs{"(K) " if board.largest_army == self.colour else ""}{"(R)" if board.longest_road == self.colour else ""}")
         
         for resource in catan.Resource:
             if resource != catan.Resource.DESERT:
@@ -157,6 +158,7 @@ class Player(AI):
             if player != self.colour and player != catan.Colour.NONE:
                 dpg.set_value(f"{player.name.lower()}_num_res_cards", board.player_info[player]["res_cards"])
                 dpg.set_value(f"{player.name.lower()}_num_dev_cards", board.player_info[player]["dev_cards"])
+                dpg.set_value(f"{player.name.lower()}_extras", ("(K) " if board.largest_army == player else "") + ("(R)" if board.longest_road == player else ""))
     
     
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
