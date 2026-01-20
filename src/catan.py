@@ -672,8 +672,8 @@ class Board:
             # recurse on other vertex on the edge
         
         
-        def search(start: int, visited_edges: set[int] = set()) -> list[int]:
-            max_path = []
+        def search(start: int, visited_edges: set[int] = set()) -> int:
+            max_path = 0
             
             found_edge = False
             
@@ -687,19 +687,19 @@ class Board:
                         next_vert = edge.verts[1] if edge.verts[0] == start else edge.verts[0]
                         path = search(next_vert, visited_edges | {edge_i})
                         
-                        if len(path) > len(max_path):
+                        if path > max_path:
                             max_path = path
             
-            return [start] + max_path if found_edge else []
+            return max_path + 1 if found_edge else 0
 
-        max_path = []
+        max_path = 0
         
         for i in range(len(self.verts)):
             path = search(i)
-            if len(path) > len(max_path):
+            if path > max_path:
                 max_path = path
         
-        return len(max_path), max_path
+        return max_path
             
             
     
