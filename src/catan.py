@@ -666,47 +666,40 @@ class Board:
         self.hexes[pos].hasRobber = True
     
     def max_road_length(self, colour: Colour): # MARK: TODO longest road
-        # for each start:
+        # for each starting vertex:
             # find adjacent roads
-            # mach each road to a length (takig into account already visited edges)
-            # return the longest one
-            
-            # so it returns (length, [end, ..., start])
+            # if they are correct
+            # recurse on other vertex on the edge
         
         
-        def search(start: int, visited: set[int] = set(), prev_vert: int = -1) -> tuple[int, list[int]]:
-            visited.add(start) # add to set of visited indexes
-            
-            max_distance = 0
+        def search(start: int, visited_edges: set[int] = set()) -> list[int]:
             max_path = []
             
-            for v in self.edges[start].verts:
-                if (self.verts[v].structure.owner == Colour.NONE or self.verts[v].structure.owner == colour) and v != prev_vert:
-                    # un-clamed or own vertex
+            found_edge = False
             
-                    for edge in self.verts[v].edges:
-                        if edge is not None and edge not in visited and self.edges[edge].structure.owner == colour:
-                            # new edge to try
-                            distance, new_path = search(edge, visited, v)
-                            if distance > max_distance:
-                                max_distance = distance
-                                max_path = new_path
+            for edge_i in self.verts[start].edges:
+                if edge_i is not None and edge_i not in visited_edges:
+                    edge = self.edges[edge_i]
+                    if edge.structure.owner == colour:
+                        # edge has road
+                        found_edge = True
                         
+                        next_vert = edge.verts[1] if edge.verts[0] == start else edge.verts[0]
+                        path = search(next_vert, visited_edges | {edge_i})
+                        
+                        if len(path) > len(max_path):
+                            max_path = path
             
-            return max_distance + 1, max_path + [start]
+            return [start] + max_path if found_edge else []
 
-        max_distance = 0
         max_path = []
         
-        for start_edge_i, start_edge in enumerate(self.edges):
-            if start_edge.structure.owner == colour:
-                # found a road of right colour
-                distance, new_path = search(start_edge_i)
-                if distance > max_distance:
-                        max_distance = distance
-                        max_path = new_path
+        for i in range(len(self.verts)):
+            path = search(i)
+            if len(path) > len(max_path):
+                max_path = path
         
-        return max_distance, max_path
+        return len(max_path), max_path
             
             
     
@@ -818,25 +811,31 @@ class Board:
     
 
 if __name__ == "__main__":
+    def loop():
+        while 1:
+            v = int(input())
+            board.edges[v].structure = Structure(Colour.WHITE, Building.ROAD) if board.edges[v].structure.owner == Colour.NONE else Structure(Colour.NONE, Building.EMPTY)
+            
+            board.draw()
+            dpg.render_dearpygui_frame()
+            
+            print(board.max_road_length(Colour.WHITE))
+            
+    from threading import Thread
     dpg.create_context()
 
     # init viewport
     dpg.create_viewport(title='Catan', width=1920, height=1080)
     dpg.setup_dearpygui()
     dpg.show_viewport()
-    dpg.toggle_viewport_fullscreen()
     
     board = Board()
     
-    dpg.render_dearpygui_frame()
-    board.draw()
-    dpg.render_dearpygui_frame()
+    Thread(target=loop).start()
+    
     while 1:
-        v = int(input())
-        board.edges[v].structure = Structure(Colour.WHITE, Building.ROAD) if board.edges[v].structure.owner == Colour.NONE else Structure(Colour.NONE, Building.EMPTY)
-        
         board.draw()
         dpg.render_dearpygui_frame()
-        
-        print(board.max_road_length(Colour.WHITE))
+    
+    
         

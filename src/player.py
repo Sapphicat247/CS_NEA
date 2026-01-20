@@ -144,7 +144,7 @@ class Player(AI):
         
 
     def update_gui(self, board: catan.Board) -> None:
-        dpg.set_value("player_vps_and_info", f"{self.victory_points} VPs{"(K) " if board.largest_army == self.colour else ""}{"(R)" if board.longest_road == self.colour else ""}")
+        dpg.set_value("player_vps_and_info", f"{self.victory_points} VPs {"(K) " if board.largest_army == self.colour else ""}{"(R)" if board.longest_road == self.colour else ""}")
         
         for resource in catan.Resource:
             if resource != catan.Resource.DESERT:
@@ -162,11 +162,6 @@ class Player(AI):
     
     
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
-        # TEMP FOR TESTING #########################
-        for i in catan.DevelopmentCard:
-            if i != catan.DevelopmentCard.NONE:
-                self.development_cards[i] += 1
-        ###############################################
         self.board = board
         match settlement_number:
             case "first":

@@ -328,27 +328,30 @@ while dpg.is_dearpygui_running():
                 if current_AI.development_cards[catan.DevelopmentCard.KNIGHT] == 0:
                     # dont actualy have the card
                     raise ValueError("you dont have that card")
+                current_AI.development_cards[catan.DevelopmentCard.KNIGHT] -= 1
 
                 new_robber_pos, steal_target = current_AI.move_robber(copy_of_board()) # get the robber movement
                 move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
                 
                 # give player the largest army card if they have the most knights
                 current_AI.army_size += 1
-                for ai in AI_list:
-                    if ai != current_AI:
-                        if ai.army_size > current_AI.army_size:
-                            break
-                
-                else:
-                    # no players with a larger or equal army size
-                    board.largest_army = current_AI.colour
-                    print(f"{current_AI.colour.name.lower()} got the largest army card")
+                if current_AI.army_size >= 3:
+                    for ai in AI_list:
+                        if ai != current_AI:
+                            if ai.army_size > current_AI.army_size:
+                                break
+                    
+                    else:
+                        # no players with a larger or equal army size
+                        board.largest_army = current_AI.colour
+                        print(f"{current_AI.colour.name.lower()} got the largest army card")
                     
             
             case [catan.Event.USE_YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
                 if current_AI.development_cards[catan.DevelopmentCard.YEAR_OF_PLENTY] == 0:
                     # dont actualy have the card
                     raise ValueError("you dont have that card")
+                current_AI.development_cards[catan.DevelopmentCard.YEAR_OF_PLENTY] -= 1
                 
                 current_AI.resources[resource_1] += 1
                 current_AI.resources[resource_2] += 1
@@ -357,6 +360,7 @@ while dpg.is_dearpygui_running():
                 if current_AI.development_cards[catan.DevelopmentCard.ROAD_BUILDING] == 0:
                     # dont actualy have the card
                     raise ValueError("you dont have that card")
+                current_AI.development_cards[catan.DevelopmentCard.ROAD_BUILDING] -= 1
 
                 board.place_road(current_AI.colour, hand=None, position=pos_1)
                 board.place_road(current_AI.colour, hand=None, position=pos_2)
@@ -365,6 +369,7 @@ while dpg.is_dearpygui_running():
                 if current_AI.development_cards[catan.DevelopmentCard.MONOPOLY] == 0:
                     # dont actualy have the card
                     raise ValueError("you dont have that card")
+                current_AI.development_cards[catan.DevelopmentCard.MONOPOLY] -= 1
 
                 taken = 0
                 for ai in AI_list:
