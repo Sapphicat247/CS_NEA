@@ -7,7 +7,7 @@ import colours
 import dearpygui.dearpygui as dpg
 import random
 
-HAS_HUMAN = False
+HAS_HUMAN = True
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
@@ -28,7 +28,7 @@ dpg.create_context()
 dpg.create_viewport(title='Catan', width=1920, height=1080)
 dpg.setup_dearpygui()
 dpg.show_viewport()
-dpg.toggle_viewport_fullscreen()
+#dpg.toggle_viewport_fullscreen()
 # create a board
 board = catan.Board()
 

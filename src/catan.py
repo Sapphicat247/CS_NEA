@@ -1,5 +1,5 @@
 # data type imports
-from enum import Enum, Flag
+from enum import Enum
 from dataclasses import dataclass, field
 
 # function imports
@@ -112,7 +112,6 @@ class Edge:
     """where you build roads"""
     structure: Structure = field(default_factory=Structure)
     port: Port | None = None
-    visited: bool = False # used for finding length of longest road
     
     verts: list[int] = field(default_factory = lambda: [-1]*2) # N S | NE SW | NW SE
 
@@ -606,11 +605,15 @@ class Board:
         Raises:
             Exception: Robber was not found
         """
+        pos = None
+        
         for i, hex in enumerate(self.hexes):
             if hex.hasRobber:
-                return i
+                pos = i
+                break
         
-        raise Exception("Robber was not found anywhere on the board (this should never happen)")
+        assert pos is not None
+        return pos
     
     # MARK: Game concepts
     

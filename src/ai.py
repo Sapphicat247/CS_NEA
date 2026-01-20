@@ -108,7 +108,7 @@ class AI_Random(AI):
 
         return robber_pos, random.choice(adj_players)
     
-    def __get_position_options(self, building: catan.Building, board: catan.Board) -> list[int] | set[int]:
+    def __get_position_options(self, building: catan.Building, board: catan.Board) -> set[int]:
         match building:
             case catan.Building.CITY | catan.Building.SETTLEMENT | catan.Building.ROAD:
                 return {i for i in range(len(board.verts)) if board.can_place(building, self.colour, hand=self.resources, position=i)}

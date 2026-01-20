@@ -1,9 +1,9 @@
-from .ai import AI, AI_Random
-from . import catan
+from src.ai import AI
+from src import catan
 
 import dearpygui.dearpygui as dpg
 
-class Player(AI_Random): # TODO inherit from normal AI
+class Player(AI):
 
     class __NamedDict(dict):
 
@@ -17,17 +17,26 @@ class Player(AI_Random): # TODO inherit from normal AI
             super().__setitem__(name, value)
 
     dpg_components: __NamedDict
+    
     __last_click_pos = None
     __last_colour_selected = None
     
+    __last_pressed_event: catan.Event | None
+    __monopoly_resource = None
+    __yop_resources: list[catan.Resource]
+    __yop_selection_done = False
+    
     __card_selection: dict[catan.Resource, int]
     __done_card_selection = False
+    
+    
     board: catan.Board
 
     def __init__(self, colour: catan.Colour) -> None:
         super().__init__(colour)
         
         self.__card_selection = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
+        self.__yop_resources = [catan.Resource.DESERT, catan.Resource.DESERT]
         
         with dpg.handler_registry():
             dpg.add_mouse_click_handler(callback=self.__mouse_click)
@@ -77,23 +86,22 @@ class Player(AI_Random): # TODO inherit from normal AI
                                     dpg.add_text("0", tag=f"{player.name.lower()}_num_dev_cards")
                 
                 with dpg.tab(label = "Turn", show=True, ):
-                    dpg.add_button(label="Roll Dice")
+                    dpg.add_button(label="Roll Dice", callback=self.__gui_button_pressed, user_data=catan.Event.DICE_ROLL)
                     with dpg.group(horizontal=True):
-                        dpg.add_button(label="Build Road")
-                        dpg.add_button(label="Build Settlement")
-                        dpg.add_button(label="Build City")
+                        dpg.add_button(label="Build Road", callback=self.__gui_button_pressed, user_data=catan.Event.BUILD_ROAD)
+                        dpg.add_button(label="Build Settlement", callback=self.__gui_button_pressed, user_data=catan.Event.BUILD_SETTLEMENT)
+                        dpg.add_button(label="Build City", callback=self.__gui_button_pressed, user_data=catan.Event.BUILD_CITY)
 
-                    dpg.add_button(label="buy development card")
+                    dpg.add_button(label="buy development card", callback=self.__gui_button_pressed, user_data=catan.Event.BUY_DEV_CARD)
                     dpg.add_text("use development card: ")
                     with dpg.group(horizontal=True):
                         for i in catan.DevelopmentCard:
-                            if i != catan.DevelopmentCard.NONE:
-                                dpg.add_button(label=f"{i.name.lower().replace("_", " ").capitalize()}")
+                            if i != catan.DevelopmentCard.NONE and i != catan.DevelopmentCard.VICTORY_POINT:
+                                dpg.add_button(label=f"{i.name.lower().replace("_", " ").capitalize()}", callback=self.__gui_button_pressed, user_data=catan.Event[f"USE_{i.name}"])
+
+                    dpg.add_button(label="trade", callback=self.__gui_button_pressed, user_data=catan.Event.TRADE)
                     
-                    # use dev card 
-                    dpg.add_button(label="trade")
-                    
-                    dpg.add_button(label="end turn")
+                    dpg.add_button(label="end turn", callback=self.__gui_button_pressed, user_data=catan.Event.END_TURN)
 
         with dpg.window(width=150, height=100, show=False, tag="player selector", label="select a player", no_close=True, pos=(300,0)):
             dpg.add_button(label="Red", show=False, callback=self.__colour_selected, user_data=catan.Colour.RED, tag="red button")
@@ -109,6 +117,30 @@ class Player(AI_Random): # TODO inherit from normal AI
             dpg.add_text(label="card selector text")
             
             dpg.add_button(tag="card selector button", callback=self.__resource_selection_button_clicked, label="confirm")
+        
+        with dpg.window(width=250, height=200, show=False, tag="monopoly selector", label="select a resoruce type", no_close=True, pos=(300, 0)):
+            
+            for i in catan.Resource:
+                if i != catan.Resource.DESERT:
+                    dpg.add_button(label=i.name.lower(), show=True, user_data=i, callback=self.__monopoly_button_pressed)
+        
+        with dpg.window(width=250, height=200, show=False, tag="yop selector", label="select a resoruce type", no_close=True, pos=(300, 0)):
+            
+            for i in catan.Resource:
+                if i != catan.Resource.DESERT:
+                    with dpg.group(horizontal=True):
+                        dpg.add_text(i.name.lower())
+                        dpg.add_checkbox(user_data=(0, i), callback=self.__yop_button_pressed, tag=f"{i.name.lower()} checkbox 0")
+                        dpg.add_checkbox(user_data=(1, i), callback=self.__yop_button_pressed, tag=f"{i.name.lower()} checkbox 1")
+            
+            dpg.add_button(tag="finished_yop_selection_button", callback=self.__yop_button_pressed, label="confirm", user_data=(None, catan.Resource.DESERT)) # desert = send button
+        
+        
+        
+    
+    def __gui_button_pressed(self, sender, app_data, user_data):
+        self.__last_pressed_event = user_data # update the flag
+        
 
     def update_gui(self, board: catan.Board) -> None:
         dpg.set_value(self.dpg_components.vps, f"{self.victory_points} VPs")
@@ -128,18 +160,26 @@ class Player(AI_Random): # TODO inherit from normal AI
     
     
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
+        # TEMP FOR TESTING #########################
+        for i in catan.DevelopmentCard:
+            if i != catan.DevelopmentCard.NONE:
+                self.development_cards[i] += 1
+        ###############################################
         self.board = board
         match settlement_number:
             case "first":
+                print("place your first settlement")
                 return self.__get_vertex(), self.__get_edge() # index of vertex, edge to place settlement, road
         
             case "second":
+                print("place your second settlement")
                 return self.__get_vertex(), self.__get_edge() # index of vertex, edge to place settlement, road
             
             case _ as e:
                 raise ValueError(f"tried to place a strange starting settlement: {e} (this should never happen)")
     
     def discard_half(self) -> dict[catan.Resource, int]:
+        print("discard half your hand")
         return self.__select_cards()
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
@@ -147,20 +187,54 @@ class Player(AI_Random): # TODO inherit from normal AI
         # called when you roll a 7 or play a knight card
         # pos, player to steal from
         options = set()
-        pos = 99999999
+        pos = None
         
         while not options:
+            print("chose a location for the robber to move to")
             pos = self.__get_hex()
+            if pos == board.robber_pos:
+                continue # invalid
             
             options = {board.verts[i].structure.owner for i in board.hexes[pos].verts if board.verts[i].structure.owner != catan.Colour.NONE and board.verts[i].structure.owner != self.colour}
         
+        assert pos is not None
+        print("chose a player")
         return pos, self.__get_player(options=options)
     
     def do_action(self, board: catan.Board) -> catan.Action:
         self.board = board
-        # get from the ui tab
-        # enable, get action, if its and end turn, disable it
-        return catan.Action(catan.Event.END_TURN, None)
+        self.__last_pressed_event = None
+        print("it's your turn, have an action")
+        while self.__last_pressed_event == None:
+            dpg.render_dearpygui_frame()
+        
+        # button pressed
+        # get specific input for the action
+        
+        match self.__last_pressed_event:
+            # events with no argument
+            case catan.Event.END_TURN | catan.Event.BUY_DEV_CARD | catan.Event.USE_KNIGHT as event:
+                return catan.Action(event, None)
+            
+            # place building
+            case catan.Event.BUILD_CITY | catan.Event.BUILD_SETTLEMENT as event:
+                return catan.Action(event, self.__get_vertex())
+            case catan.Event.BUILD_ROAD:
+                return catan.Action(catan.Event.BUILD_ROAD, self.__get_edge())
+            
+            # use dev card
+            case catan.Event.USE_MONOPOLY:
+                return catan.Action(catan.Event.USE_MONOPOLY, self.__get_monopoly_resource())
+            case catan.Event.USE_YEAR_OF_PLENTY:
+                return catan.Action(catan.Event.USE_YEAR_OF_PLENTY, self.__get_yop_resources())
+            case catan.Event.USE_ROAD_BUILDING:
+                return catan.Action(catan.Event.USE_ROAD_BUILDING, (self.__get_edge(), self.__get_edge()))
+            
+            case catan.Event.TRADE | _:
+                ...
+        
+        
+        return catan.Action(self.__last_pressed_event, None)
     
     def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
         # show resources in a dialoge box, and have an accepr/deny button
@@ -172,7 +246,7 @@ class Player(AI_Random): # TODO inherit from normal AI
     
     def __get_vertex(self) -> int:
         self.__last_click_pos = None
-        print("waiting for mouse click")
+        print("waiting for vertex click...")
         while self.__last_click_pos == None:
             dpg.render_dearpygui_frame()
         
@@ -203,7 +277,7 @@ class Player(AI_Random): # TODO inherit from normal AI
     
     def __get_edge(self) -> int:
         self.__last_click_pos = None
-        print("waiting for mouse click")
+        print("waiting for edge click...")
         while self.__last_click_pos == None:
             dpg.render_dearpygui_frame()
         
@@ -234,7 +308,7 @@ class Player(AI_Random): # TODO inherit from normal AI
     
     def __get_hex(self) -> int:
         self.__last_click_pos = None
-        print("waiting for mouse click")
+        print("waiting for hex click...")
         while self.__last_click_pos == None:
             dpg.render_dearpygui_frame()
         
@@ -323,3 +397,46 @@ class Player(AI_Random): # TODO inherit from normal AI
         if sum(self.__card_selection.values()) == sum(self.resources.values()) // 2:
             # selected enough cards
             self.__done_card_selection = True
+    
+    def __monopoly_button_pressed(self, sender, app_data, user_data):
+        self.__monopoly_resource = user_data
+    
+    def __get_monopoly_resource(self):
+        self.__monopoly_resource = None
+        dpg.show_item("monopoly selector")
+        
+        while self.__monopoly_resource is None:
+            dpg.render_dearpygui_frame()
+        
+        dpg.hide_item("monopoly selector")
+        return self.__monopoly_resource
+    
+    def __yop_button_pressed(self, sender, app_data, user_data: tuple[int, catan.Resource]):
+        if user_data[1] == catan.Resource.DESERT:
+            # only done if both resources are selected
+            self.__yop_selection_done = catan.Resource.DESERT not in self.__yop_resources
+        
+        else:
+            # reset other boxes in that column
+            for i in catan.Resource:
+                if i != catan.Resource.DESERT and i != user_data[1]:
+                    dpg.set_value(f"{i.name.lower()} checkbox {user_data[0]}", False)
+            
+            
+            self.__yop_resources[user_data[0]] = user_data[1]
+    
+    def __get_yop_resources(self):
+        # reset
+        self.__yop_resources = [catan.Resource.DESERT, catan.Resource.DESERT]
+        self.__yop_selection_done = False
+        
+        dpg.show_item("yop selector")
+        
+        while not self.__yop_selection_done:
+            dpg.render_dearpygui_frame()
+        
+        dpg.hide_item("yop selector")
+        
+        return tuple(self.__yop_resources)
+        
+        
