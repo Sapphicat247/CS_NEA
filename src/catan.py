@@ -9,9 +9,6 @@ from copy import deepcopy
 # GUI
 import dearpygui.dearpygui as dpg
 
-# testing
-from pprint import pprint
-
 DEBUG = True
 
 class BuildingError(Exception):
@@ -68,9 +65,9 @@ class Event(Enum):
     """used so the AIs can communicate with the game,\n
     each event is a basic thing an ai can do"""
     END_TURN = 0 # None
-    BUILD_SETTLEMENT = 10 # int: location
-    BUILD_CITY = 11 # int: location
-    BUILD_ROAD = 12 # int: location
+    BUILD_SETTLEMENT = 10 # location
+    BUILD_CITY = 11 # location
+    BUILD_ROAD = 12 # location
     TRADE = 20 # tuple: (giving, recieving)
     BUY_DEV_CARD = 30 # None
     
@@ -83,12 +80,19 @@ class Event(Enum):
     P_STOLE_FROM_P = 52 # tuple: (giver, stealer)
     P_DISCARDED = 53 # tuple: (person, number of cards)
 
+Location = int
+EventArg = None | Location | Resource | tuple[list[Resource], list[Resource]] | tuple[Resource, Resource] | tuple[Location, Location] | tuple[Colour, Colour] | tuple[Colour, int]
+
 @dataclass
 class Action:
     """holds information as well as the actual thing the AI wants to do,\n
     or for information to be sent back to the AI"""
     event: Event
-    arg: None | int | Resource | tuple[list[Resource], list[Resource]] | tuple[Resource, Resource] | tuple[int, int] | tuple[Colour, Colour] | tuple[Colour, int]
+    arg: EventArg
+    
+    def __iter__(self):
+        yield self.event
+        yield self.arg
 
 @dataclass
 class Port:
@@ -808,7 +812,7 @@ class Board:
         new_board.development_cards = [DevelopmentCard.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
         
         return new_board
-    
+
 
 if __name__ == "__main__":
     def loop():
@@ -836,6 +840,3 @@ if __name__ == "__main__":
     while 1:
         board.draw()
         dpg.render_dearpygui_frame()
-    
-    
-        

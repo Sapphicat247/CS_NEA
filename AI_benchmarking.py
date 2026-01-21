@@ -6,6 +6,8 @@ import colours
 
 import dearpygui.dearpygui as dpg
 import random
+import sys
+
 
 HAS_HUMAN = True
 
@@ -197,6 +199,60 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
     
     board.set_robber_pos(pos)
 
+def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
+    # check if the player is even allowed to play that card
+    if player.development_cards[card] == 0:
+        # dont actualy have the card
+        raise ValueError("you dont have that card")
+    if player.used_dev_card:
+        # already played one this turn
+        raise ValueError("you can only play one development card per turn")
+        
+    match card, args:
+        case [catan.DevelopmentCard.KNIGHT, None]:
+            new_robber_pos, steal_target = player.move_robber(copy_of_board()) # get the robber movement
+            move_robber_and_steal(new_robber_pos, player, get_by_colour(steal_target)) # interprit the movement
+            
+            # give player the largest army card if they have the most knights
+            player.army_size += 1
+            if player.army_size >= 3:
+                for ai in AI_list:
+                    if ai != player:
+                        if ai.army_size > player.army_size:
+                            break
+                
+                else:
+                    # no players with a larger or equal army size
+                    board.largest_army = player.colour
+                    print(f"{player.colour.name.lower()} got the largest army card")
+                
+        
+        case [catan.DevelopmentCard.YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
+            player.resources[resource_1] += 1
+            player.resources[resource_2] += 1
+            
+        case [catan.DevelopmentCard.ROAD_BUILDING, [pos_1, pos_2]] if type(pos_1) == int and type(pos_2) == int:
+            board.place_road(player.colour, hand=None, position=pos_1)
+            board.place_road(player.colour, hand=None, position=pos_2)
+            
+        case [catan.DevelopmentCard.MONOPOLY, resource] if type(resource) == catan.Resource:
+            taken = 0
+            for ai in AI_list:
+                if ai != player:
+                    taken += ai.resources[resource]
+                    ai.resources[resource] = 0
+                        
+            player.resources[resource] += taken
+        
+        case _:
+            assert ValueError("something was malformed in the args")
+            # should never happen
+            pass
+    
+    # sucess
+    player.used_dev_card = True    
+    player.development_cards[card] -= 1
+
 # MARK: main loop
 current_turn = 0
 
@@ -211,12 +267,29 @@ while dpg.is_dearpygui_running():
     
     ready_for_turn = False
     current_AI = AI_list[current_turn]
+    print(f"its {current_AI.colour.name.lower().capitalize()}'s turn")
     
-    #print(f"{COLOUR_LIST[current_turn]}{catan.Colour(current_turn+1).name} is having a turn{colours.END}")
-    #if DEBUG: print("\trolling dice")
+    # give the ai it's dev_cards which are on cooldown & reset if they've played one already this turn
+    current_AI.used_dev_card = False
+    for development_card in catan.DevelopmentCard:
+        if development_card != catan.DevelopmentCard.NONE:
+            current_AI.development_cards[development_card] += current_AI.development_cards_on_cooldown[development_card]
+            current_AI.development_cards_on_cooldown[development_card] = 0
+    
+    # check if they wish to play a dev card
+    action = current_AI.roll_dice(copy_of_board())
+    match action.event:
+        case catan.Event.DICE_ROLL:
+            pass
+        case catan.Event.USE_KNIGHT | catan.Event.USE_MONOPOLY | catan.Event.USE_ROAD_BUILDING | catan.Event.USE_YEAR_OF_PLENTY:
+            card = catan.DevelopmentCard[action.event.name.removeprefix("USE_")]
+            use_dev_card(card, action.arg, current_AI)
+            
+        case _:
+            raise ValueError(f"you cant't {action.event} before you roll the dice")
+
     dice = random.randint(1, 6) + random.randint(1, 6)
-    #print(f"\trolled a {dice};", "moving robber" if dice == 7 else "distributing resources")
-    # filter for rolling a 7
+    print(f"{"an" if dice == 8 or dice == 11 else "a"} {dice} was rolled")
     
     if dice == 7:
         print("7 rolled")
@@ -257,12 +330,6 @@ while dpg.is_dearpygui_running():
     if update():
         break
     
-    # give the ai it's dev_cards which are on cooldown
-    for development_card in catan.DevelopmentCard:
-        if development_card != catan.DevelopmentCard.NONE:
-            current_AI.development_cards[development_card] += current_AI.development_cards_on_cooldown[development_card]
-            current_AI.development_cards_on_cooldown[development_card] = 0
-    
     while 1:
         #if DEBUG: print("\tdoing action")
         action = current_AI.do_action(copy_of_board())
@@ -270,121 +337,78 @@ while dpg.is_dearpygui_running():
         #print(f"\t{action.event.name}: {action.arg}")
         
         # try to do action
-        match action.event, action.arg:
-            case [catan.Event.END_TURN, None]:
-                break
-            
-            case [catan.Event.BUILD_SETTLEMENT, pos] if type(pos) == int:
-                board.place_settlement(current_AI.colour, hand=current_AI.resources, position=pos)
+        try:
+            match action.event, action.arg:
+                case [catan.Event.END_TURN, None]:
+                    break
                 
-                # can place settlement
-                current_AI.resources[catan.Resource.BRICK] -= 1
-                current_AI.resources[catan.Resource.WOOD] -= 1
-                current_AI.resources[catan.Resource.WOOL] -= 1
-                current_AI.resources[catan.Resource.GRAIN] -= 1
-
-                current_AI.victory_points += 1
-            
-            case [catan.Event.BUILD_CITY, pos] if type(pos) == int:
-                board.place_city(current_AI.colour, hand=current_AI.resources, position=pos)
-                
-                # can place city
-                current_AI.resources[catan.Resource.ORE] -= 3
-                current_AI.resources[catan.Resource.GRAIN] -= 2
-
-                current_AI.victory_points += 1
-                
-            case [catan.Event.BUILD_ROAD, pos] if type(pos) == int:
-                board.place_road(current_AI.colour, hand=current_AI.resources, position=pos)
-                
-                # can place road
-                current_AI.resources[catan.Resource.BRICK] -= 1
-                current_AI.resources[catan.Resource.WOOD] -= 1
-                
-                update()
-                
-                print(f"{current_AI.colour.name}'s longest road is {board.max_road_length(current_AI.colour)} tiles long")
-                
-            case [catan.Event.BUY_DEV_CARD, None]:
-                if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
-                    raise ValueError("you can't afford a developmeant card")
-                
-                current_AI.resources[catan.Resource.ORE] -= 1
-                current_AI.resources[catan.Resource.WOOL] -= 1
-                current_AI.resources[catan.Resource.GRAIN] -= 1
-                
-                
-                try:
-                    # give AI a development card
-                    card = board.development_cards.pop()
-                    if card == catan.DevelopmentCard.VICTORY_POINT:
-                        current_AI.development_cards[card] += 1
-                    else:
-                        current_AI.development_cards_on_cooldown[card] += 1
-                except IndexError:
-                    print("no development cards left")
-            
-            case [catan.Event.USE_KNIGHT, None]:
-                if current_AI.development_cards[catan.DevelopmentCard.KNIGHT] == 0:
-                    # dont actualy have the card
-                    raise ValueError("you dont have that card")
-                current_AI.development_cards[catan.DevelopmentCard.KNIGHT] -= 1
-
-                new_robber_pos, steal_target = current_AI.move_robber(copy_of_board()) # get the robber movement
-                move_robber_and_steal(new_robber_pos, current_AI, get_by_colour(steal_target)) # interprit the movement
-                
-                # give player the largest army card if they have the most knights
-                current_AI.army_size += 1
-                if current_AI.army_size >= 3:
-                    for ai in AI_list:
-                        if ai != current_AI:
-                            if ai.army_size > current_AI.army_size:
-                                break
+                case [catan.Event.BUILD_SETTLEMENT, pos] if type(pos) == int:
+                    board.place_settlement(current_AI.colour, hand=current_AI.resources, position=pos)
                     
-                    else:
-                        # no players with a larger or equal army size
-                        board.largest_army = current_AI.colour
-                        print(f"{current_AI.colour.name.lower()} got the largest army card")
+                    # can place settlement
+                    current_AI.resources[catan.Resource.BRICK] -= 1
+                    current_AI.resources[catan.Resource.WOOD] -= 1
+                    current_AI.resources[catan.Resource.WOOL] -= 1
+                    current_AI.resources[catan.Resource.GRAIN] -= 1
+
+                    current_AI.victory_points += 1
+                
+                case [catan.Event.BUILD_CITY, pos] if type(pos) == int:
+                    board.place_city(current_AI.colour, hand=current_AI.resources, position=pos)
                     
-            
-            case [catan.Event.USE_YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
-                if current_AI.development_cards[catan.DevelopmentCard.YEAR_OF_PLENTY] == 0:
-                    # dont actualy have the card
-                    raise ValueError("you dont have that card")
-                current_AI.development_cards[catan.DevelopmentCard.YEAR_OF_PLENTY] -= 1
-                
-                current_AI.resources[resource_1] += 1
-                current_AI.resources[resource_2] += 1
-                
-            case [catan.Event.USE_ROAD_BUILDING, [pos_1, pos_2]] if type(pos_1) == int and type(pos_2) == int:
-                if current_AI.development_cards[catan.DevelopmentCard.ROAD_BUILDING] == 0:
-                    # dont actualy have the card
-                    raise ValueError("you dont have that card")
-                current_AI.development_cards[catan.DevelopmentCard.ROAD_BUILDING] -= 1
+                    # can place city
+                    current_AI.resources[catan.Resource.ORE] -= 3
+                    current_AI.resources[catan.Resource.GRAIN] -= 2
 
-                board.place_road(current_AI.colour, hand=None, position=pos_1)
-                board.place_road(current_AI.colour, hand=None, position=pos_2)
+                    current_AI.victory_points += 1
+                    
+                case [catan.Event.BUILD_ROAD, pos] if type(pos) == int:
+                    board.place_road(current_AI.colour, hand=current_AI.resources, position=pos)
+                    
+                    # can place road
+                    current_AI.resources[catan.Resource.BRICK] -= 1
+                    current_AI.resources[catan.Resource.WOOD] -= 1
+                    
+                    update()
+                    
+                    print(f"{current_AI.colour.name}'s longest road is {board.max_road_length(current_AI.colour)} tiles long")
+                    
+                case [catan.Event.BUY_DEV_CARD, None]:
+                    if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
+                        raise ValueError("you can't afford a developmeant card")
+                    
+                    current_AI.resources[catan.Resource.ORE] -= 1
+                    current_AI.resources[catan.Resource.WOOL] -= 1
+                    current_AI.resources[catan.Resource.GRAIN] -= 1
+                    
+                    
+                    try:
+                        # give AI a development card
+                        card = board.development_cards.pop()
+                        if card == catan.DevelopmentCard.VICTORY_POINT:
+                            current_AI.development_cards[card] += 1
+                        else:
+                            current_AI.development_cards_on_cooldown[card] += 1
+                    except IndexError:
+                        print("no development cards left")
                 
-            case [catan.Event.USE_MONOPOLY, resource] if type(resource) == catan.Resource:
-                if current_AI.development_cards[catan.DevelopmentCard.MONOPOLY] == 0:
-                    # dont actualy have the card
-                    raise ValueError("you dont have that card")
-                current_AI.development_cards[catan.DevelopmentCard.MONOPOLY] -= 1
-
-                taken = 0
-                for ai in AI_list:
-                    if ai != current_AI:
-                        taken += ai.resources[resource]
-                        ai.resources[resource] = 0
-                            
-                current_AI.resources[resource] += taken
-            
-            case [catan.Event.TRADE, giving, recieving]:
-                ...
-            
-            case _:
-                raise Exception(f"could not interprit {action} as an action")
-
+                case [catan.Event.USE_KNIGHT | catan.Event.USE_MONOPOLY | catan.Event.USE_ROAD_BUILDING |catan.Event.USE_YEAR_OF_PLENTY, _]:
+                    card = catan.DevelopmentCard[action.event.name.removeprefix("USE_")]
+                    use_dev_card(card, action.arg, current_AI)
+                
+                case [catan.Event.TRADE, giving, recieving]:
+                    ...
+                
+                case _:
+                    raise Exception(f"could not interprit {action} as an action")
+                
+        except Exception as e:
+            if current_AI.is_human:
+                print(e)
+            else:
+                raise e
+        
+        
         # if it gets to here, action was succesfull.
         # so notify players and update gui
         

@@ -29,14 +29,20 @@ class Player(AI):
     __card_selection: dict[catan.Resource, int]
     __done_card_selection = False
     
-    
     board: catan.Board
+    
+    def __update_screen(self):
+        dpg.render_dearpygui_frame()
+        if not dpg.is_dearpygui_running():
+            dpg.destroy_context()
 
     def __init__(self, colour: catan.Colour) -> None:
         super().__init__(colour)
         
         self.__card_selection = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
         self.__yop_resources = [catan.Resource.DESERT, catan.Resource.DESERT]
+        
+        self.is_human = True
         
         with dpg.handler_registry():
             dpg.add_mouse_click_handler(callback=self.__mouse_click)
@@ -136,12 +142,6 @@ class Player(AI):
             
             dpg.add_button(tag="finished_yop_selection_button", callback=self.__yop_button_pressed, label="confirm", user_data=(None, catan.Resource.DESERT)) # desert = send button
         
-        
-        
-    
-    def __gui_button_pressed(self, sender, app_data, user_data):
-        self.__last_pressed_event = user_data # update the flag
-        
 
     def update_gui(self, board: catan.Board) -> None:
         dpg.set_value("player_vps_and_info", f"{self.victory_points} VPs {"(K) " if board.largest_army == self.colour else ""}{"(R)" if board.longest_road == self.colour else ""}")
@@ -173,7 +173,7 @@ class Player(AI):
                 return self.__get_vertex(), self.__get_edge() # index of vertex, edge to place settlement, road
             
             case _ as e:
-                raise ValueError(f"tried to place a strange starting settlement: {e} (this should never happen)")
+                raise ValueError(f"tried to place a strange starting settlement number {e} (this should never happen)")
     
     def discard_half(self) -> dict[catan.Resource, int]:
         print("discard half your hand")
@@ -198,12 +198,45 @@ class Player(AI):
         print("chose a player")
         return pos, self.__get_player(options=options)
     
+    def roll_dice(self, board: catan.Board) -> catan.Action:
+        self.board = board
+        self.__last_pressed_event = None
+        
+        print("it's the start of your turn, you may play a development card before rolling the dice")
+        
+        if sum(v for k, v in self.development_cards.items() if k != catan.DevelopmentCard.VICTORY_POINT) > 0:
+            # has a development card
+            ...
+        while 1:
+            self.__last_pressed_event = None
+            # wait for button click
+            while self.__last_pressed_event == None:
+                self.__update_screen()
+            
+            # check it was valid
+            match self.__last_pressed_event:
+                case catan.Event.DICE_ROLL:
+                    break
+                
+                case catan.Event.USE_KNIGHT:
+                    return catan.Action(catan.Event.USE_KNIGHT, None)
+                case catan.Event.USE_MONOPOLY:
+                    return catan.Action(catan.Event.USE_MONOPOLY, self.__get_monopoly_resource())
+                case catan.Event.USE_YEAR_OF_PLENTY:
+                    return catan.Action(catan.Event.USE_YEAR_OF_PLENTY, self.__get_yop_resources())
+                case catan.Event.USE_ROAD_BUILDING:
+                    return catan.Action(catan.Event.USE_ROAD_BUILDING, (self.__get_edge(), self.__get_edge()))
+                
+        return catan.Action(catan.Event.DICE_ROLL, None)
+        
+        
+    
     def do_action(self, board: catan.Board) -> catan.Action:
         self.board = board
         self.__last_pressed_event = None
         print("it's your turn, have an action")
         while self.__last_pressed_event == None:
-            dpg.render_dearpygui_frame()
+            self.__update_screen()
         
         # button pressed
         # get specific input for the action
@@ -237,6 +270,8 @@ class Player(AI):
         # show resources in a dialoge box, and have an accepr/deny button
         return False
     
+    def __gui_button_pressed(self, sender, app_data, user_data):
+        self.__last_pressed_event = user_data # update the flag
     
     def __mouse_click(self, sender, app_data):
         self.__last_click_pos = dpg.get_mouse_pos(local=False)
@@ -245,7 +280,7 @@ class Player(AI):
         self.__last_click_pos = None
         print("waiting for vertex click...")
         while self.__last_click_pos == None:
-            dpg.render_dearpygui_frame()
+            self.__update_screen()
         
         # get size of each hex
         width = dpg.get_viewport_client_width()
@@ -269,14 +304,13 @@ class Player(AI):
         distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in hex_positions]
         
         selected = distances.index(min(distances))
-        print(f"selected: {selected}")
         return selected
     
     def __get_edge(self) -> int:
         self.__last_click_pos = None
         print("waiting for edge click...")
         while self.__last_click_pos == None:
-            dpg.render_dearpygui_frame()
+            self.__update_screen()
         
         # get size of each hex
         width = dpg.get_viewport_client_width()
@@ -300,14 +334,13 @@ class Player(AI):
         distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in edge_positions]
         
         selected = distances.index(min(distances))
-        print(f"selected: {selected}")
         return selected
     
     def __get_hex(self) -> int:
         self.__last_click_pos = None
         print("waiting for hex click...")
         while self.__last_click_pos == None:
-            dpg.render_dearpygui_frame()
+            self.__update_screen()
         
         # get size of each hex
         width = dpg.get_viewport_client_width()
@@ -334,7 +367,6 @@ class Player(AI):
         distances = [(x - self.__last_click_pos[0])**2 + (y - self.__last_click_pos[1])**2 for x, y in hex_positions]
         
         selected = distances.index(min(distances))
-        print(f"selected: {selected}")
         return selected
     
     def __get_player(self, options: set[catan.Colour]) -> catan.Colour:
@@ -345,7 +377,7 @@ class Player(AI):
         print("waiting for player selection")
         
         while self.__last_colour_selected == None:
-            dpg.render_dearpygui_frame()
+            self.__update_screen()
         
         dpg.hide_item("player selector")
         for player in options:
@@ -367,7 +399,7 @@ class Player(AI):
         dpg.show_item("card selector")
         
         while not self.__done_card_selection:
-            dpg.render_dearpygui_frame()
+            self.__update_screen()
             
         dpg.hide_item("card selector")
         
@@ -403,7 +435,7 @@ class Player(AI):
         dpg.show_item("monopoly selector")
         
         while self.__monopoly_resource is None:
-            dpg.render_dearpygui_frame()
+            self.__update_screen()
         
         dpg.hide_item("monopoly selector")
         return self.__monopoly_resource
@@ -430,7 +462,7 @@ class Player(AI):
         dpg.show_item("yop selector")
         
         while not self.__yop_selection_done:
-            dpg.render_dearpygui_frame()
+            self.__update_screen()
         
         dpg.hide_item("yop selector")
         

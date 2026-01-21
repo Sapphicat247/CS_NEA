@@ -2,6 +2,7 @@ from src import catan
 import random
 import colours
 import dearpygui.dearpygui as dpg
+from typing import Literal
 
 class AI:
     # basic class to build other versions off
@@ -9,9 +10,12 @@ class AI:
     victory_points: int
     resources: dict[catan.Resource, int]
     development_cards: dict[catan.DevelopmentCard, int]
+    development_cards_on_cooldown: dict[catan.DevelopmentCard, int]
     colour: catan.Colour
     ansi_colour: str
     army_size: int
+    used_dev_card: bool
+    is_human: bool
     
     def __init__(self, colour: catan.Colour) -> None:
         self.victory_points = 0
@@ -21,6 +25,8 @@ class AI:
         self.colour = colour
         
         self.army_size = 0
+        self.used_dev_card = False
+        self.is_human = False
         
         self.ansi_colour = {
             catan.Colour.RED: colours.fg.RED,
@@ -30,37 +36,32 @@ class AI:
         }[self.colour] + colours.bg.RGB(0, 0, 0)
     
     def update_gui(self, board: catan.Board) -> None:
-        pass
+        ...
 
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
-        match settlement_number:
-            case "first":
-                return 0, 0 # index of vertex, edge to place settlement, road
-        
-            case "second":
-                return 0, 0 # index of vertex, edge to place settlement, road
-            
-            case _ as e:
-                raise ValueError(f"tried to place a strange starting settlement: {e}")
+        ...
     
     def discard_half(self) -> dict[catan.Resource, int]:
-        return {}
+        ...
     
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
         # called when you roll a 7 or play a knight card
         # pos, player to steal from
-        return 0, catan.Colour.NONE
+        ...
+    
+    def roll_dice(self, board: catan.Board) -> catan.Action:
+        ...
     
     def do_action(self, board: catan.Board) -> catan.Action:
-        return catan.Action(catan.Event.END_TURN, None)
+        ...
     
     def on_opponent_action(self, action: catan.Action, board: catan.Board) -> None: # gives the action e.g. dice roll, and the state of the board after the action was completed
         # can be called on own turn, when another player accepts a trade deal
-        pass
+        ...
     
     def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
         # does this ai want to accept a deal from another player?
-        return False
+        ...
      
 class AI_Random(AI):
     # basic class to build other versions off
@@ -119,6 +120,14 @@ class AI_Random(AI):
             case _:
                 raise ValueError(f"{building} is not a valid building")
     
+    def roll_dice(self, board: catan.Board) -> catan.Action:
+        if sum(v for k, v in self.development_cards.items() if k != catan.DevelopmentCard.VICTORY_POINT) > 0:
+            # has a development card
+            card = random.choice([k for k, v in self.development_cards.items() if k != catan.DevelopmentCard.VICTORY_POINT and v > 0])
+            return catan.Action(catan.Event[f"USE_{card.name}"], None)
+        
+        return catan.Action(catan.Event.DICE_ROLL, None)
+    
     def do_action(self, board: catan.Board) -> catan.Action:
         # try to build something if you can afford it
         if options := self.__get_position_options(catan.Building.CITY, board):
@@ -133,7 +142,12 @@ class AI_Random(AI):
         if catan.can_afford(self.resources, catan.Building.DEVELOPMENT_CARD) and len(board.development_cards) > 0:
             return catan.Action(catan.Event.BUY_DEV_CARD, None)
             
-        # try to use a development card if you have one
+        # try to use a development card if you have one and not used one this turn
+        if not self.used_dev_card:
+            if sum(v for k, v in self.development_cards.items() if k != catan.DevelopmentCard.VICTORY_POINT) > 0:
+                # has a development card
+                card = random.choice([k for k, v in self.development_cards.items() if k != catan.DevelopmentCard.VICTORY_POINT and v > 0])
+                return catan.Action(catan.Event[f"USE_{card.name}"], None)
         
         return catan.Action(catan.Event.END_TURN, None)
     
