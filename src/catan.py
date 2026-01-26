@@ -156,7 +156,39 @@ def rotate(l: list, n: int) -> list:
     """moves the first item of a list to the end {n} times"""
     return l[n:] + l[:n]
 
-def can_afford(hand: dict[Resource, int], building: Building | dict[Resource, int]) -> bool:
+def get_cost(building: Building) -> Hand:
+    match building:
+        case Building.SETTLEMENT:
+            return {
+                Resource.BRICK: 1,
+                Resource.WOOD:  1,
+                Resource.WOOL:  1,
+                Resource.GRAIN: 1
+            }
+            
+        case Building.CITY:
+            return {
+                Resource.GRAIN: 2,
+                Resource.ORE:   3
+            }
+            
+        case Building.ROAD:
+            return {
+                Resource.BRICK: 1,
+                Resource.WOOD:  1,
+            }
+        
+        case Building.DEVELOPMENT_CARD:
+            return {
+                Resource.WOOL:  1,
+                Resource.GRAIN: 1,
+                Resource.ORE:   1
+            }
+        
+        case _:
+            raise ValueError(f"incorrect type: {building}")
+
+def can_afford(hand: Hand, building: Building | Hand) -> bool:
     """given a hand of cards, can you afford a certain building"""
     match building:
         case Building.SETTLEMENT:
