@@ -59,9 +59,12 @@ class AI:
         # can be called on own turn, when another player accepts a trade deal
         ...
     
-    def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
+    def trade(self, person: catan.Colour, offer: catan.Hand, recieve: catan.Hand) -> bool:
         # does this ai want to accept a deal from another player?
         ...
+    
+    def __eq__(self, other):
+        return self.colour == other.colour
      
 class AI_Random(AI):
     # basic class to build other versions off
@@ -98,10 +101,10 @@ class AI_Random(AI):
     def move_robber(self, board: catan.Board) -> tuple[int, catan.Colour]:
         
         robber_pos = random.randint(0, 18)
-        while robber_pos == board.robber_pos:
+        while robber_pos == board.robber_pos or len([board.verts[i].structure.owner for i in board.hexes[robber_pos].verts if board.verts[i].structure.owner != catan.Colour.NONE and board.verts[i].structure.owner != self.colour]) == 0:
             robber_pos = random.randint(0, 18)
             
-        adj_players = [board.verts[i].structure.owner for i in board.hexes[robber_pos].verts] # get all players adjacent to that hex
+        adj_players = [board.verts[i].structure.owner for i in board.hexes[robber_pos].verts if board.verts[i].structure.owner != catan.Colour.NONE and board.verts[i].structure.owner != self.colour] # get all players adjacent to that hex
         adj_players = [i for i in adj_players if i != catan.Colour.NONE and i != self.colour] # eliminate empty spots and yourself
         
         if adj_players == []:
@@ -155,5 +158,5 @@ class AI_Random(AI):
         # can be called on own turn, when another player accepts a trade deal
         ...
     
-    def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
+    def trade(self, person: catan.Colour, offer: catan.Hand, recieve: catan.Hand) -> bool:
         return False

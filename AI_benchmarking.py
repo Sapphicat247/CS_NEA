@@ -6,42 +6,13 @@ import colours
 
 import dearpygui.dearpygui as dpg
 import random
-import sys
 
+HAS_HUMAN = False
 
-HAS_HUMAN = True
+# MARK: start
 
 def rotate(l: list, n: int) -> list:
     return l[n:] + l[:n]
-
-COLOUR_LIST = [
-    colours.fg.RED +    colours.bg.RGB(0, 0, 0),
-    colours.fg.ORANGE + colours.bg.RGB(0, 0, 0),
-    colours.fg.BLUE +   colours.bg.RGB(0, 0, 0),
-    colours.fg.WHITE +  colours.bg.RGB(0, 0, 0),
-    ]
-
-# MARK: dpg stuff
-
-# create dpg widow
-dpg.create_context()
-
-# init viewport
-dpg.create_viewport(title='Catan', width=1920, height=1080)
-dpg.setup_dearpygui()
-dpg.show_viewport()
-#dpg.toggle_viewport_fullscreen()
-# create a board
-board = catan.Board()
-
-# create AIs
-
-AI_list: list[AI] = [
-    Player(catan.Colour.RED) if HAS_HUMAN else AI_Random(catan.Colour.RED),
-    AI_Random(catan.Colour.ORANGE),
-    AI_Random(catan.Colour.BLUE),
-    AI_Random(catan.Colour.WHITE),
-]
 
 def get_by_colour(col: catan.Colour) -> AI:
     """returns the AI with this colour"""
@@ -59,86 +30,6 @@ def copy_of_board():
     b.player_info = {i: {"res_cards": sum(get_by_colour(i).resources.values()), "dev_cards": sum(get_by_colour(i).development_cards.values()) + sum(get_by_colour(i).development_cards_on_cooldown.values())} for i in catan.Colour if i != catan.Colour.NONE}
     
     return b
-
-pos_list = [(0,0), (0,1440-400-39), (2560-300-16, 0), (2560-300-16, 1440-400-39)]
-
-if not HAS_HUMAN: # show debug info on AIs
-
-    for ai_index, ai in enumerate(AI_list):
-        with dpg.window(label=ai.colour.name, width=300, height=400, pos=pos_list[ai_index], ):
-            dpg.add_text(f"{ai.victory_points} ({0}) VPs", tag=f"{ai.colour.name}_vps")
-            
-            with dpg.tab_bar():
-                with dpg.tab(label = "hand"):
-                    dpg.add_text(f"\nresources:")
-                    with dpg.table(header_row=False):
-                        dpg.add_table_column()
-                        dpg.add_table_column()
-                        
-                        for resource in catan.Resource:
-                            if resource != catan.Resource.DESERT:
-                                with dpg.table_row():
-                                    dpg.add_text(resource.name)
-                                    dpg.add_text("0", tag=f"{ai.colour.name}_{resource.name}_number")
-                    
-                    dpg.add_text(f"\nDevelopment cards:")
-                    with dpg.table(header_row=False):
-                        dpg.add_table_column()
-                        dpg.add_table_column()
-                        
-                        for development_card in catan.DevelopmentCard:
-                            if development_card != catan.DevelopmentCard.NONE:
-                                
-                                with dpg.table_row():
-                                    dpg.add_text(development_card.name)
-                                    dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
-
-ready_for_turn = True
-def next_turn():
-    global ready_for_turn
-    ready_for_turn = True
-
-auto_run = -1
-
-if not HAS_HUMAN:    
-    with dpg.window(label="graphs", pos= (400+39, 0)):
-        dpg.add_button(label="next turn", callback=next_turn)
-        auto_run = dpg.add_checkbox(label="auto")
-
-
-# MARK: set-up phaze
-# choose starting player
-dpg.render_dearpygui_frame()
-board.draw()
-dpg.render_dearpygui_frame()
-
-for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
-    board.draw()
-    dpg.render_dearpygui_frame()
-    settlement_pos = 99999
-    while 1:
-        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, copy_of_board()) # get a move from the AI
-
-        try:
-            board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
-            
-            if road_pos not in board.verts[settlement_pos].edges:
-                raise catan.BuildingError("Not connected to correct settlement")
-        
-            board.place_road(catan.Colour(i+1), hand=None, position=road_pos)
-            
-        except catan.BuildingError as e:
-            print(e)
-            board.delete_settlement(settlement_pos)
-        else:
-            break
-
-    AI_list[i].victory_points += 1
-    if j == "second":
-        # give starting resources
-        resources = board.get_resources(None, settlement_pos)
-        AI_list[i].resources = resources[AI_list[i].colour]
-        
 
 def update() -> bool:
     """update GUI"""
@@ -177,7 +68,7 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
         raise ValueError(f"hex: {pos} doesn't exist")
     
     # valid robber position
-    if steal_from == None:
+    if steal_from is None:
         board.set_robber_pos(pos) # always valid
         return
     
@@ -253,7 +144,124 @@ def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
     player.used_dev_card = True    
     player.development_cards[card] -= 1
 
-# MARK: main loop
+def bank_trade(giving: catan.Hand, recieving: catan.Hand, player: AI):
+    
+    # check if they have any ports
+    ports: list[catan.Resource] = []
+    for vert in board.verts:
+        if vert.structure.owner == player.colour:
+            for edge_i in vert.edges:
+                if edge_i is not None:
+                    port = board.edges[edge_i].port
+                    if port is not None:
+                        ports.append(port.resource)
+    
+    
+    # check for 3:1
+    if catan.Resource.DESERT in ports:
+        for resource, number in giving.items():
+            ...
+
+# MARK: start
+
+# create dpg widow
+dpg.create_context()
+
+# init viewport
+dpg.create_viewport(title='Catan', width=1920, height=1080)
+dpg.setup_dearpygui()
+dpg.show_viewport()
+#dpg.toggle_viewport_fullscreen()
+# create a board
+board = catan.Board()
+
+# create AIs
+
+AI_list: list[AI] = [
+    Player(catan.Colour.RED) if HAS_HUMAN else AI_Random(catan.Colour.RED),
+    AI_Random(catan.Colour.ORANGE),
+    AI_Random(catan.Colour.BLUE),
+    AI_Random(catan.Colour.WHITE),
+]
+
+if not HAS_HUMAN: # show debug info on AIs
+
+    for ai_index, ai in enumerate(AI_list):
+        with dpg.window(label=ai.colour.name, width=300, height=400, pos=((0,0), (0,1440-400-39), (2560-300-16, 0), (2560-300-16, 1440-400-39))[ai_index], ):
+            dpg.add_text(f"{ai.victory_points} ({0}) VPs", tag=f"{ai.colour.name}_vps")
+            
+            with dpg.tab_bar():
+                with dpg.tab(label = "hand"):
+                    dpg.add_text(f"\nresources:")
+                    with dpg.table(header_row=False):
+                        dpg.add_table_column()
+                        dpg.add_table_column()
+                        
+                        for resource in catan.Resource:
+                            if resource != catan.Resource.DESERT:
+                                with dpg.table_row():
+                                    dpg.add_text(resource.name)
+                                    dpg.add_text("0", tag=f"{ai.colour.name}_{resource.name}_number")
+                    
+                    dpg.add_text(f"\nDevelopment cards:")
+                    with dpg.table(header_row=False):
+                        dpg.add_table_column()
+                        dpg.add_table_column()
+                        
+                        for development_card in catan.DevelopmentCard:
+                            if development_card != catan.DevelopmentCard.NONE:
+                                
+                                with dpg.table_row():
+                                    dpg.add_text(development_card.name)
+                                    dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
+
+ready_for_turn = True
+def next_turn():
+    global ready_for_turn
+    ready_for_turn = True
+
+auto_run = -1
+
+if not HAS_HUMAN:    
+    with dpg.window(label="graphs", pos= (400+39, 0)):
+        dpg.add_button(label="next turn", callback=next_turn)
+        auto_run = dpg.add_checkbox(label="auto")
+
+
+# MARK: set-up phase
+# choose starting player
+dpg.render_dearpygui_frame()
+board.draw()
+dpg.render_dearpygui_frame()
+
+for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
+    board.draw()
+    dpg.render_dearpygui_frame()
+    settlement_pos = 99999
+    while 1:
+        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, copy_of_board()) # get a move from the AI
+
+        try:
+            board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
+            
+            if road_pos not in board.verts[settlement_pos].edges:
+                raise catan.BuildingError("Not connected to correct settlement")
+        
+            board.place_road(catan.Colour(i+1), hand=None, position=road_pos)
+            
+        except catan.BuildingError as e:
+            print(e)
+            board.delete_settlement(settlement_pos)
+        else:
+            break
+
+    AI_list[i].victory_points += 1
+    if j == "second":
+        # give starting resources
+        resources = board.get_resources(None, settlement_pos)
+        AI_list[i].resources = resources[AI_list[i].colour]
+
+# MARK: game loop
 current_turn = 0
 
 while dpg.is_dearpygui_running():
@@ -289,7 +297,7 @@ while dpg.is_dearpygui_running():
             raise ValueError(f"you cant't {action.event} before you roll the dice")
 
     dice = random.randint(1, 6) + random.randint(1, 6)
-    print(f"{"an" if dice == 8 or dice == 11 else "a"} {dice} was rolled")
+    print(f"{"An" if dice == 8 or dice == 11 else "A"} {dice} was rolled")
     
     if dice == 7:
         print("7 rolled")
@@ -392,12 +400,49 @@ while dpg.is_dearpygui_running():
                     except IndexError:
                         print("no development cards left")
                 
+                case [catan.Event.TRADE, [giving, recieving, preferances]]:
+                    if not catan.can_afford(current_AI.resources, giving):
+                        raise ValueError("you cant afford that trade")
+                    
+                    # check with players
+                    respondants = set()
+                    for ai in AI_list:
+                        if ai != current_AI:
+                            if ai.trade(current_AI.colour, giving, recieving):
+                                if not catan.can_afford(ai.resources, recieving):
+                                    raise ValueError("you cant afford that trade")
+                                respondants.add(ai.colour)
+                    
+                    # check with bank
+                    if bank_trade(giving, recieving, current_AI):
+                        respondants.add(catan.Colour.NONE)
+                                                    
+                    for player in preferances:
+                        if player in respondants:
+                            # both parties agreed
+                            if player != catan.Colour.NONE:
+                                # ai / person
+                                player = get_by_colour(player)
+                                for resource in catan.Resource:
+                                    if resource != catan.Resource.DESERT:
+                                        current_AI.resources[resource] += recieving[resource]
+                                        player.resources[resource] -= recieving[resource]
+                                        
+                                        current_AI.resources[resource] -= giving[resource]
+                                        player.resources[resource] += giving[resource]
+                            else:
+                                # bank
+                                for resource in catan.Resource:
+                                    if resource != catan.Resource.DESERT:
+                                        current_AI.resources[resource] += recieving[resource]
+                                        current_AI.resources[resource] -= giving[resource]
+                                
+                                
+                                    
+                
                 case [catan.Event.USE_KNIGHT | catan.Event.USE_MONOPOLY | catan.Event.USE_ROAD_BUILDING |catan.Event.USE_YEAR_OF_PLENTY, _]:
                     card = catan.DevelopmentCard[action.event.name.removeprefix("USE_")]
                     use_dev_card(card, action.arg, current_AI)
-                
-                case [catan.Event.TRADE, giving, recieving]:
-                    ...
                 
                 case _:
                     raise Exception(f"could not interprit {action} as an action")
@@ -408,32 +453,34 @@ while dpg.is_dearpygui_running():
             else:
                 raise e
         
-        
+        board.update_longest_raod()
         # if it gets to here, action was succesfull.
         # so notify players and update gui
         
         for ai in AI_list:
             if ai != current_AI:
                 ai.on_opponent_action(action, copy_of_board())
-        
-        board.draw()
-        
+                
         # update info pannels for each player
         
         if update():
             break
-        
-    #if DEBUG: print("\tturn over, 'passing the dice'")
-    
+
     # increment turn counter
     current_turn += 1
     current_turn %= 4
     if update():
         break
 
+# MARK: print winner
+
 for ai in AI_list:
     if get_real_vps(ai) >= 10:
         print(f"{ai.ansi_colour}{ai.colour.name} WON!{colours.END}")
+        if board.largest_army == ai.colour:
+            print("they had the largest army")
+        if board.longest_road == ai.colour:
+            print("they had the longest road")
 
 while dpg.is_dearpygui_running():
     dpg.render_dearpygui_frame()

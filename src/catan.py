@@ -9,7 +9,7 @@ from copy import deepcopy
 # GUI
 import dearpygui.dearpygui as dpg
 
-DEBUG = True
+DEBUG = False
 
 class BuildingError(Exception):
     """error used for when an AI tries to place a building in an invalid location"""
@@ -81,7 +81,9 @@ class Event(Enum):
     P_DISCARDED = 53 # tuple: (person, number of cards)
 
 Location = int
-EventArg = None | Location | Resource | tuple[list[Resource], list[Resource]] | tuple[Resource, Resource] | tuple[Location, Location] | tuple[Colour, Colour] | tuple[Colour, int]
+class Hand  (dict[Resource, int]): pass
+
+EventArg = None | Location | Resource | tuple[Hand, Hand, list[Colour]] | tuple[Resource, Resource] | tuple[Location, Location] | tuple[Colour, Colour] | tuple[Colour, int]
 
 @dataclass
 class Action:
@@ -570,15 +572,18 @@ class Board:
         for vert in adj_verts:
             if vert.structure.owner == owner: # city or settlement owned by this player adjacent to road target
                 self.edges[position].structure = Structure(owner, Building.ROAD)
-                return
+                break
             
             adj_edges = [self.edges[i] for i in vert.edges if i != None]
             for edge in adj_edges:
                 if edge.structure == Structure(owner, Building.ROAD) and vert.structure.owner == Colour.NONE: # road owned by this person AND not interupted by settlement / city
                     self.edges[position].structure = Structure(owner, Building.ROAD)
-                    return
-
-        raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
+                    break
+                
+        else:
+            raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
+        
+        self.update_longest_raod()
     
     def delete_settlement(self, position: int):
         """removes settlement
@@ -669,7 +674,7 @@ class Board:
         
         self.hexes[pos].hasRobber = True
     
-    def max_road_length(self, colour: Colour): # MARK: TODO longest road
+    def max_road_length(self, colour: Colour):
         # for each starting vertex:
             # find adjacent roads
             # if they are correct
@@ -704,8 +709,28 @@ class Board:
                 max_path = path
         
         return max_path
-            
-            
+    
+    def update_longest_raod(self):
+        max_length = 4
+        best_player = Colour.NONE
+        
+        for player in Colour:
+            if player != Colour.NONE:
+                length = self.max_road_length(player)
+                if length > max_length:
+                    max_length = length
+                    best_player = player
+        
+        self.longest_road = best_player
+                
+    
+    @property
+    def safe_copy(self):
+        """hide info the AIs are not allowed to see"""
+        new_board = deepcopy(self)
+        new_board.development_cards = [DevelopmentCard.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
+        
+        return new_board
     
     # MARK: Display
     @property
@@ -769,7 +794,7 @@ class Board:
                     col = (255, 0, 0, 255)
                 else:
                     col = (0  , 0, 0, 255)
-                dpg.draw_text((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), f"{hex.diceValue}", color=col, size=size/4, parent="debug")
+                dpg.draw_text((hex.relative_pos[0]*size + center[0] - size/18*len(str(hex.diceValue)), hex.relative_pos[1]*size + center[1] - size/9), f"{hex.diceValue}", color=col, size=size/4, parent="debug")
                 
             
             # debug text
@@ -798,22 +823,39 @@ class Board:
                     
                 dpg.draw_line(p0, p1, thickness=size/12, color=colour, parent="edges")
             
+            if edge.port is not None:
+                # find road direction
+                # index:     0  1    2    3  4     5
+                # direction: N  NE   SE   S  SW    NW
+                # angle:     π  2/3π 1/3π 0  -1/3π -2/3π
+                
+                for index, coastal_edge in enumerate(self.verts[edge.verts[0]].edges):
+                    if coastal_edge == edge_i:
+                        # found this edge
+                        direction = ["N", "NE", "SE", "S", "SW", "NW"][index]
+                        angle = [math.pi, 2/3*math.pi, 1/3*math.pi, 0, -1/3*math.pi, -2/3*math.pi][index]
+                        
+                        p0 = (self.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.verts[edge.verts[0]].relative_pos[1]*size + center[1])
+                        p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
+                        
+                        p = ((p0[0] + p1[0])/2 + size/3*math.cos(angle), (p0[1] + p1[1])/2 + size/3*math.sin(angle))
+                        
+                        if DEBUG: dpg.draw_text((p[0] + size/3*math.cos(angle), p[1] + size/3*math.sin(angle)), f"{edge.port.resource.name.lower().capitalize()}", color=(0, 0, 255, 255), size=20, parent="debug")
+                        
+                        dpg.draw_line(p0, p, color=(80,60,0), parent="edges", thickness=size/18)
+                        dpg.draw_line(p1, p, color=(80,60,0), parent="edges", thickness=size/18)
+                        
+                        dpg.draw_circle(p, size/5, fill=hex_colour_lookup[edge.port.resource], color=(0,0,0), parent="edges")
+                        dpg.draw_text((p[0]-size/12, p[1]-size/16), f"{"3:1" if edge.port.resource == Resource.DESERT else "2:1"}", color=(0,0,0), size=size/8, parent="debug")
+                
+            
             if DEBUG: 
                 p0 = (self.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.verts[edge.verts[0]].relative_pos[1]*size + center[1])
                 p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
+                
                 dpg.draw_text(((p0[0] + p1[0])/2, (p0[1] + p1[1])/2), f"{edge_i}", color=(0, 0, 255, 255), size=20, parent="debug")
-            
 
-    # MARK: misc functions
-    @property
-    def safe_copy(self):
-        """hide info the AIs are not allowed to see"""
-        new_board = deepcopy(self)
-        new_board.development_cards = [DevelopmentCard.NONE]*len(new_board.development_cards) # don't reveal the stack of developmeant cards
-        
-        return new_board
-
-
+# MARK: testing
 if __name__ == "__main__":
     def loop():
         while 1:

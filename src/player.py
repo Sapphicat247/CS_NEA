@@ -202,7 +202,7 @@ class Player(AI):
         self.board = board
         self.__last_pressed_event = None
         
-        print("it's the start of your turn, you may play a development card before rolling the dice")
+        print("It's the start of your turn, you may play a development card before rolling the dice")
         
         if sum(v for k, v in self.development_cards.items() if k != catan.DevelopmentCard.VICTORY_POINT) > 0:
             # has a development card
@@ -234,7 +234,7 @@ class Player(AI):
     def do_action(self, board: catan.Board) -> catan.Action:
         self.board = board
         self.__last_pressed_event = None
-        print("it's your turn, have an action")
+        print("It's your turn, have an action")
         while self.__last_pressed_event == None:
             self.__update_screen()
         
@@ -261,13 +261,17 @@ class Player(AI):
                 return catan.Action(catan.Event.USE_ROAD_BUILDING, (self.__get_edge(), self.__get_edge()))
             
             case catan.Event.TRADE | _:
-                ...
+                print("select the cards you want")
+                recieve = self.__select_cards()
+                print("select the cards you would like to recieve")
+                offer = self.__select_cards()
         
         
         return catan.Action(self.__last_pressed_event, None)
     
-    def trade(self, person: catan.Colour, offer: list[catan.Resource], recieve: list[catan.Resource]) -> bool:
-        # show resources in a dialoge box, and have an accepr/deny button
+    def trade(self, person: catan.Colour, offer: catan.Hand, recieve: catan.Hand) -> bool:
+        # show resources in a dialoge box, and have an accept/deny button
+        
         return False
     
     def __gui_button_pressed(self, sender, app_data, user_data):
