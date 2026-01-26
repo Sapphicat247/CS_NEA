@@ -36,25 +36,9 @@ def update() -> bool:
     board.draw()
     dpg.render_dearpygui_frame()
     
-    if  HAS_HUMAN:
-        for ai in AI_list:
-            ai.update_gui(copy_of_board())
-            
-    else:
-        for ai in AI_list:
-            
-            real_vps = get_real_vps(ai)
-            dpg.set_value(f"{ai.colour.name}_vps", f"{ai.victory_points} ({real_vps}) VPs")
-            
-            for resource in catan.Resource:
-                if resource != catan.Resource.DESERT:
-                    dpg.set_value(f"{ai.colour.name}_{resource.name}_number", f"{ai.resources[resource]}")
-            
-            for development_card in catan.DevelopmentCard:
-                if development_card != catan.DevelopmentCard.NONE:
-                    dpg.set_value(f"{ai.colour.name}_{development_card.name}_number", f"{ai.development_cards[development_card] + ai.development_cards_on_cooldown[development_card]}")
-    
     for ai in AI_list:
+        ai.update_gui(copy_of_board())
+            
         if get_real_vps(ai) >= 10:
             return True
     
@@ -145,22 +129,12 @@ def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
     player.development_cards[card] -= 1
 
 def bank_trade(giving: catan.Hand, recieving: catan.Hand, player: AI):
+    # the 1 limitation is that you cant mix & match trade types for 1 resource 
+    resources = [i for i in catan.Resource if i != catan.Resource.DESERT]
     
-    # check if they have any ports
-    ports: list[catan.Resource] = []
-    for vert in board.verts:
-        if vert.structure.owner == player.colour:
-            for edge_i in vert.edges:
-                if edge_i is not None:
-                    port = board.edges[edge_i].port
-                    if port is not None:
-                        ports.append(port.resource)
+    # do 2:1, removing from list
     
-    
-    # check for 3:1
-    if catan.Resource.DESERT in ports:
-        for resource, number in giving.items():
-            ...
+    # 3:1 the rest if posible, otherwise 4:1
 
 # MARK: start
 
@@ -178,42 +152,11 @@ board = catan.Board()
 # create AIs
 
 AI_list: list[AI] = [
-    Player(catan.Colour.RED) if HAS_HUMAN else AI_Random(catan.Colour.RED),
-    AI_Random(catan.Colour.ORANGE),
-    AI_Random(catan.Colour.BLUE),
-    AI_Random(catan.Colour.WHITE),
+    Player(catan.Colour.RED, 0) if HAS_HUMAN else AI_Random(catan.Colour.RED, 0),
+    AI_Random(catan.Colour.ORANGE, 1),
+    AI_Random(catan.Colour.BLUE, 2),
+    AI_Random(catan.Colour.WHITE, 3),
 ]
-
-if not HAS_HUMAN: # show debug info on AIs
-
-    for ai_index, ai in enumerate(AI_list):
-        with dpg.window(label=ai.colour.name, width=300, height=400, pos=((0,0), (0,1440-400-39), (2560-300-16, 0), (2560-300-16, 1440-400-39))[ai_index], ):
-            dpg.add_text(f"{ai.victory_points} ({0}) VPs", tag=f"{ai.colour.name}_vps")
-            
-            with dpg.tab_bar():
-                with dpg.tab(label = "hand"):
-                    dpg.add_text(f"\nresources:")
-                    with dpg.table(header_row=False):
-                        dpg.add_table_column()
-                        dpg.add_table_column()
-                        
-                        for resource in catan.Resource:
-                            if resource != catan.Resource.DESERT:
-                                with dpg.table_row():
-                                    dpg.add_text(resource.name)
-                                    dpg.add_text("0", tag=f"{ai.colour.name}_{resource.name}_number")
-                    
-                    dpg.add_text(f"\nDevelopment cards:")
-                    with dpg.table(header_row=False):
-                        dpg.add_table_column()
-                        dpg.add_table_column()
-                        
-                        for development_card in catan.DevelopmentCard:
-                            if development_card != catan.DevelopmentCard.NONE:
-                                
-                                with dpg.table_row():
-                                    dpg.add_text(development_card.name)
-                                    dpg.add_text("0", tag=f"{ai.colour.name}_{development_card.name}_number")
 
 ready_for_turn = True
 def next_turn():
@@ -275,7 +218,7 @@ while dpg.is_dearpygui_running():
     
     ready_for_turn = False
     current_AI = AI_list[current_turn]
-    print(f"its {current_AI.colour.name.lower().capitalize()}'s turn")
+    print(f"its {current_AI.colour.name.capitalize()}'s turn")
     
     # give the ai it's dev_cards which are on cooldown & reset if they've played one already this turn
     current_AI.used_dev_card = False

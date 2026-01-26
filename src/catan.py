@@ -843,7 +843,7 @@ class Board:
                         
                         p = ((p0[0] + p1[0])/2 + size/3*math.cos(angle), (p0[1] + p1[1])/2 + size/3*math.sin(angle))
                         
-                        if DEBUG: dpg.draw_text((p[0] + size/3*math.cos(angle), p[1] + size/3*math.sin(angle)), f"{edge.port.resource.name.lower().capitalize()}", color=(0, 0, 255, 255), size=20, parent="debug")
+                        if DEBUG: dpg.draw_text((p[0] + size/3*math.cos(angle), p[1] + size/3*math.sin(angle)), f"{edge.port.resource.name.capitalize()}", color=(0, 0, 255, 255), size=20, parent="debug")
                         
                         dpg.draw_line(p0, p, color=(80,60,0), parent="edges", thickness=size/18)
                         dpg.draw_line(p1, p, color=(80,60,0), parent="edges", thickness=size/18)

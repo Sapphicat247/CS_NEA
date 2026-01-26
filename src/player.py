@@ -36,8 +36,8 @@ class Player(AI):
         if not dpg.is_dearpygui_running():
             dpg.destroy_context()
 
-    def __init__(self, colour: catan.Colour) -> None:
-        super().__init__(colour)
+    def __init__(self, colour: catan.Colour, player_number: int) -> None:
+        super().__init__(colour, player_number)
         
         self.__card_selection = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
         self.__yop_resources = [catan.Resource.DESERT, catan.Resource.DESERT]
