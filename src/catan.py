@@ -28,6 +28,11 @@ class Colour(Enum):
     BLUE = 3
     WHITE = 4
 
+def Colours():
+    for i in Colour:
+        if i != Colour.NONE:
+            yield i
+
 class Building(Enum):
     """a building"""
     EMPTY = 0 # used when e.g. a vertex has no settlement / city
@@ -35,6 +40,11 @@ class Building(Enum):
     CITY = 2
     ROAD = 3
     DEVELOPMENT_CARD = 4
+    
+def Buildings():
+    for i in Building:
+        if i != Building.EMPTY:
+            yield i
 
 @dataclass
 class Structure:
@@ -50,6 +60,11 @@ class Resource(Enum):
     BRICK = 3
     ORE = 4
     GRAIN = 5
+    
+def Resources():
+    for i in Resource:
+        if i != Resource.DESERT:
+            yield i
 
 class DevelopmentCard(Enum):
     """component of the actual board game"""
@@ -59,7 +74,11 @@ class DevelopmentCard(Enum):
     YEAR_OF_PLENTY = 3
     ROAD_BUILDING = 4
     MONOPOLY = 5
-    
+
+def DevelopmentCards():
+    for i in DevelopmentCard:
+        if i != DevelopmentCard.NONE:
+            yield i
 
 class Event(Enum):
     """used so the AIs can communicate with the game,\n

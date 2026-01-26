@@ -19,9 +19,9 @@ class AI:
     
     def __init__(self, colour: catan.Colour, player_number: int) -> None:
         self.victory_points = 0
-        self.resources = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
-        self.development_cards = {i: 0 for i in catan.DevelopmentCard if i != catan.DevelopmentCard.NONE}
-        self.development_cards_on_cooldown = {i: 0 for i in catan.DevelopmentCard if i != catan.DevelopmentCard.NONE}
+        self.resources = {i: 0 for i in catan.Resources()}
+        self.development_cards = {i: 0 for i in catan.DevelopmentCards()}
+        self.development_cards_on_cooldown = {i: 0 for i in catan.DevelopmentCards()}
         self.colour = colour
         self.player_number = player_number
         
@@ -177,34 +177,29 @@ class AI_Random(AI):
                         dpg.add_table_column()
                         dpg.add_table_column()
                         
-                        for resource in catan.Resource:
-                            if resource != catan.Resource.DESERT:
-                                with dpg.table_row():
-                                    dpg.add_text(resource.name.capitalize())
-                                    dpg.add_text("0", tag=f"{self.colour.name}_resource_{resource.name}")
+                        for resource in catan.Resources():
+                            with dpg.table_row():
+                                dpg.add_text(resource.name.capitalize())
+                                dpg.add_text("0", tag=f"{self.colour.name}_resource_{resource.name}")
                     
                     dpg.add_text(f"\nDevelopment cards:")
                     with dpg.table(header_row=False):
                         dpg.add_table_column()
                         dpg.add_table_column()
                         
-                        for development_card in catan.DevelopmentCard:
-                            if development_card != catan.DevelopmentCard.NONE:
-                                
-                                with dpg.table_row():
-                                    dpg.add_text(development_card.name.lower().replace("_", " "))
-                                    dpg.add_text("0", tag=f"{self.colour.name}_development_card_{development_card.name}")
+                        for development_card in catan.DevelopmentCards():
+                            with dpg.table_row():
+                                dpg.add_text(development_card.name.lower().replace("_", " "))
+                                dpg.add_text("0", tag=f"{self.colour.name}_development_card_{development_card.name}")
     
     def update_gui(self, board: catan.Board) -> None:
         dpg.set_value(f"{self.colour.name}_vps_and_info", f"{self.victory_points} VPs {"(K) " if board.largest_army == self.colour else ""}{"(R)" if board.longest_road == self.colour else ""}")
         
-        for resource in catan.Resource:
-            if resource != catan.Resource.DESERT:
-                dpg.set_value(f"{self.colour.name}_resource_{resource.name}", f"{self.resources[resource]}")
+        for resource in catan.Resources():
+            dpg.set_value(f"{self.colour.name}_resource_{resource.name}", f"{self.resources[resource]}")
         
-        for development_card in catan.DevelopmentCard:
-            if development_card != catan.DevelopmentCard.NONE:
-                dpg.set_value(f"{self.colour.name}_development_card_{development_card.name}", f"{self.development_cards[development_card] + self.development_cards_on_cooldown[development_card]}")
+        for development_card in catan.DevelopmentCards():
+            dpg.set_value(f"{self.colour.name}_development_card_{development_card.name}", f"{self.development_cards[development_card] + self.development_cards_on_cooldown[development_card]}")
         
         
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
@@ -220,11 +215,11 @@ class AI_Random(AI):
     
     def discard_half(self, board: catan.Board):
         to_remove = sum(self.resources.values()) // 2 # number of cards above limit
-        to_discard = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT} # dict of resources
+        to_discard = {i: 0 for i in catan.Resources()} # dict of resources
         hand_copy = self.resources.copy()
         
         while sum(to_discard.values()) < to_remove: # while you have too many cards
-            card = random.choice([i for i in catan.Resource if i != catan.Resource.DESERT]) # chose a card type
+            card = random.choice([i for i in catan.Resources()]) # chose a card type
             if hand_copy[card] > 0:
                 hand_copy[card] -= 1
                 to_discard[card] += 1
@@ -292,3 +287,27 @@ class AI_Random(AI):
     
     def trade(self, person: catan.Colour, offer: catan.Hand, recieve: catan.Hand, board: catan.Board):
         return False
+
+class AI_V1(AI_Random):
+    def __init__(self, colour: catan.Colour, player_number: int) -> None:
+        super().__init__(colour, player_number)
+    
+    def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
+        DICE_TO_PROBABILITY = {2:1, 3:2, 4:3, 5:4, 6:5, 7:0, 8:5, 9:4, 10:3, 11:2, 12:1}
+        
+        vert_values = {i:0 for i in range(len(board.verts))}
+        
+        for hex in board.hexes:
+            for vert_i in hex.verts:
+                vert_values[vert_i] += DICE_TO_PROBABILITY[hex.diceValue]
+        
+        # sort options
+        for vert_i, probability in sorted(vert_values.items(), key=lambda x: x[1])[::-1]:
+            if board.can_place(catan.Building.SETTLEMENT, self.colour, vert_i, need_road=False):
+                return vert_i, random.choice(list(i for i in board.verts[vert_i].edges if i is not None))
+            
+        else:
+            raise LookupError("cant find a valid location (should never happen)")
+            
+        
+        

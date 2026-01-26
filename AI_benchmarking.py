@@ -1,5 +1,5 @@
 from src import catan
-from src.ai import AI, AI_Random
+from src.ai import AI, AI_Random as OLD_AI, AI_V1 as CURRENT_AI
 from src.player import Player
 
 import colours
@@ -7,7 +7,7 @@ import colours
 import dearpygui.dearpygui as dpg
 import random
 
-HAS_HUMAN = False
+HAS_HUMAN = True
 
 # MARK: start
 
@@ -27,7 +27,7 @@ def get_real_vps(ai: AI) -> int:
 
 def copy_of_board():
     b = board.safe_copy
-    b.player_info = {i: {"res_cards": sum(get_by_colour(i).resources.values()), "dev_cards": sum(get_by_colour(i).development_cards.values()) + sum(get_by_colour(i).development_cards_on_cooldown.values())} for i in catan.Colour if i != catan.Colour.NONE}
+    b.player_info = {i: {"res_cards": sum(get_by_colour(i).resources.values()), "dev_cards": sum(get_by_colour(i).development_cards.values()) + sum(get_by_colour(i).development_cards_on_cooldown.values())} for i in catan.Colours()}
     
     return b
 
@@ -38,7 +38,7 @@ def update() -> bool:
     
     for ai in AI_list:
         ai.update_gui(copy_of_board())
-            
+        
         if get_real_vps(ai) >= 10:
             return True
     
@@ -130,7 +130,7 @@ def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
 
 def bank_trade(giving: catan.Hand, recieving: catan.Hand, player: AI):
     # the 1 limitation is that you cant mix & match trade types for 1 resource 
-    resources = [i for i in catan.Resource if i != catan.Resource.DESERT]
+    resources = [i for i in catan.Resources()]
     
     # do 2:1, removing from list
     
@@ -152,10 +152,10 @@ board = catan.Board()
 # create AIs
 
 AI_list: list[AI] = [
-    Player(catan.Colour.RED, 0) if HAS_HUMAN else AI_Random(catan.Colour.RED, 0),
-    AI_Random(catan.Colour.ORANGE, 1),
-    AI_Random(catan.Colour.BLUE, 2),
-    AI_Random(catan.Colour.WHITE, 3),
+    Player(catan.Colour.RED, 0) if HAS_HUMAN else CURRENT_AI(catan.Colour.RED, 0),
+    CURRENT_AI(catan.Colour.ORANGE, 1),
+    CURRENT_AI(catan.Colour.BLUE, 2),
+    CURRENT_AI(catan.Colour.WHITE, 3),
 ]
 
 ready_for_turn = True
@@ -210,7 +210,7 @@ current_turn = 0
 while dpg.is_dearpygui_running():
     
     if not HAS_HUMAN:
-        while not ready_for_turn and dpg.get_value(auto_run) == False:
+        while not ready_for_turn and not dpg.get_value(auto_run) and dpg.is_dearpygui_running():
             update()
     
     if update():
@@ -222,10 +222,9 @@ while dpg.is_dearpygui_running():
     
     # give the ai it's dev_cards which are on cooldown & reset if they've played one already this turn
     current_AI.used_dev_card = False
-    for development_card in catan.DevelopmentCard:
-        if development_card != catan.DevelopmentCard.NONE:
-            current_AI.development_cards[development_card] += current_AI.development_cards_on_cooldown[development_card]
-            current_AI.development_cards_on_cooldown[development_card] = 0
+    for development_card in catan.DevelopmentCards():
+        current_AI.development_cards[development_card] += current_AI.development_cards_on_cooldown[development_card]
+        current_AI.development_cards_on_cooldown[development_card] = 0
     
     # check if they wish to play a dev card before rolling dice
     action = current_AI.roll_dice(copy_of_board())
@@ -366,19 +365,17 @@ while dpg.is_dearpygui_running():
                             if player != catan.Colour.NONE:
                                 # ai / person
                                 player = get_by_colour(player)
-                                for resource in catan.Resource:
-                                    if resource != catan.Resource.DESERT:
-                                        current_AI.resources[resource] += recieving[resource]
-                                        player.resources[resource] -= recieving[resource]
-                                        
-                                        current_AI.resources[resource] -= giving[resource]
-                                        player.resources[resource] += giving[resource]
+                                for resource in catan.Resources():
+                                    current_AI.resources[resource] += recieving[resource]
+                                    player.resources[resource] -= recieving[resource]
+                                    
+                                    current_AI.resources[resource] -= giving[resource]
+                                    player.resources[resource] += giving[resource]
                             else:
                                 # bank
-                                for resource in catan.Resource:
-                                    if resource != catan.Resource.DESERT:
-                                        current_AI.resources[resource] += recieving[resource]
-                                        current_AI.resources[resource] -= giving[resource]
+                                for resource in catan.Resources():
+                                    current_AI.resources[resource] += recieving[resource]
+                                    current_AI.resources[resource] -= giving[resource]
                                 
                                 
                                     

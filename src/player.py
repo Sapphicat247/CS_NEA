@@ -39,7 +39,7 @@ class Player(AI):
     def __init__(self, colour: catan.Colour, player_number: int) -> None:
         super().__init__(colour, player_number)
         
-        self.__card_selection = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT}
+        self.__card_selection = {i: 0 for i in catan.Resources()}
         self.__yop_resources = [catan.Resource.DESERT, catan.Resource.DESERT]
         
         self.is_human = True
@@ -58,23 +58,20 @@ class Player(AI):
                         dpg.add_table_column()
                         dpg.add_table_column()
                         
-                        for resource in catan.Resource:
-                            if resource != catan.Resource.DESERT:
-                                with dpg.table_row():
-                                    dpg.add_text(resource.name.lower())
-                                    self.dpg_components.update({f"resource_{resource.name.lower()}": dpg.add_text("0")})
+                        for resource in catan.Resources():
+                            with dpg.table_row():
+                                dpg.add_text(resource.name.lower())
+                                self.dpg_components.update({f"resource_{resource.name.lower()}": dpg.add_text("0")})
                     
                     dpg.add_text(f"\nDevelopment cards:")
                     with dpg.table(header_row=False):
                         dpg.add_table_column()
                         dpg.add_table_column()
                         
-                        for development_card in catan.DevelopmentCard:
-                            if development_card != catan.DevelopmentCard.NONE:
-                                
-                                with dpg.table_row():
-                                    dpg.add_text(development_card.name.lower().replace("_", " "))
-                                    self.dpg_components.update({f"development_card_{development_card.name.lower()}": dpg.add_text("0")})
+                        for development_card in catan.DevelopmentCards():
+                            with dpg.table_row():
+                                dpg.add_text(development_card.name.lower().replace("_", " "))
+                                self.dpg_components.update({f"development_card_{development_card.name.lower()}": dpg.add_text("0")})
                 
                 with dpg.tab(label = "Opponents"):
                     with dpg.table():
@@ -82,15 +79,13 @@ class Player(AI):
                         dpg.add_table_column(label="resource cards")
                         dpg.add_table_column(label="developmeant cards")
                         
-                        for player in catan.Colour:
-                            if player != self.colour and player != catan.Colour.NONE:
-                                
-                                with dpg.table_row():
-                                    with dpg.group(horizontal=True):
-                                        dpg.add_text(player.name.lower())
-                                        dpg.add_text("", tag=f"{player.name.lower()}_extras")
-                                    dpg.add_text("0", tag=f"{player.name.lower()}_num_res_cards")
-                                    dpg.add_text("0", tag=f"{player.name.lower()}_num_dev_cards")
+                        for player in catan.Colours():
+                            with dpg.table_row():
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text(player.name.lower())
+                                    dpg.add_text("", tag=f"{player.name.lower()}_extras")
+                                dpg.add_text("0", tag=f"{player.name.lower()}_num_res_cards")
+                                dpg.add_text("0", tag=f"{player.name.lower()}_num_dev_cards")
                 
                 with dpg.tab(label = "Turn", show=True, ):
                     dpg.add_button(label="Roll Dice", callback=self.__gui_button_pressed, user_data=catan.Event.DICE_ROLL)
@@ -117,9 +112,8 @@ class Player(AI):
             dpg.add_button(label="White", show=False, callback=self.__colour_selected, user_data=catan.Colour.WHITE, tag="white button")
         
         with dpg.window(width=250, height=200, show=False, tag="card selector", label="select some cards", no_close=True, pos=(300, 0)):
-            for i in catan.Resource:
-                if i != catan.Resource.DESERT:
-                    dpg.add_input_int(label=i.name.lower(), show=True, min_clamped=True, max_clamped=True, min_value=0, user_data=i, callback=self.__resource_changed, tag = f"{i.name.lower()} input")
+            for i in catan.Resources():
+                dpg.add_input_int(label=i.name.lower(), show=True, min_clamped=True, max_clamped=True, min_value=0, user_data=i, callback=self.__resource_changed, tag = f"{i.name.lower()} input")
             
             dpg.add_text(label="card selector text")
             
@@ -127,18 +121,16 @@ class Player(AI):
         
         with dpg.window(width=250, height=200, show=False, tag="monopoly selector", label="select a resoruce type", no_close=True, pos=(300, 0)):
             
-            for i in catan.Resource:
-                if i != catan.Resource.DESERT:
-                    dpg.add_button(label=i.name.lower(), show=True, user_data=i, callback=self.__monopoly_button_pressed)
+            for i in catan.Resources():
+                dpg.add_button(label=i.name.lower(), show=True, user_data=i, callback=self.__monopoly_button_pressed)
         
         with dpg.window(width=250, height=200, show=False, tag="yop selector", label="select a resoruce type", no_close=True, pos=(300, 0)):
             
-            for i in catan.Resource:
-                if i != catan.Resource.DESERT:
-                    with dpg.group(horizontal=True):
-                        dpg.add_text(i.name.lower())
-                        dpg.add_checkbox(user_data=(0, i), callback=self.__yop_button_pressed, tag=f"{i.name.lower()} checkbox 0")
-                        dpg.add_checkbox(user_data=(1, i), callback=self.__yop_button_pressed, tag=f"{i.name.lower()} checkbox 1")
+            for i in catan.Resources():
+                with dpg.group(horizontal=True):
+                    dpg.add_text(i.name.lower())
+                    dpg.add_checkbox(user_data=(0, i), callback=self.__yop_button_pressed, tag=f"{i.name.lower()} checkbox 0")
+                    dpg.add_checkbox(user_data=(1, i), callback=self.__yop_button_pressed, tag=f"{i.name.lower()} checkbox 1")
             
             dpg.add_button(tag="finished_yop_selection_button", callback=self.__yop_button_pressed, label="confirm", user_data=(None, catan.Resource.DESERT)) # desert = send button
         
@@ -146,13 +138,11 @@ class Player(AI):
     def update_gui(self, board: catan.Board) -> None:
         dpg.set_value("player_vps_and_info", f"{self.victory_points} VPs {"(K) " if board.largest_army == self.colour else ""}{"(R)" if board.longest_road == self.colour else ""}")
         
-        for resource in catan.Resource:
-            if resource != catan.Resource.DESERT:
-                dpg.set_value(self.dpg_components[f"resource_{resource.name.lower()}"], f"{self.resources[resource]}")
+        for resource in catan.Resources():
+            dpg.set_value(self.dpg_components[f"resource_{resource.name.lower()}"], f"{self.resources[resource]}")
         
-        for development_card in catan.DevelopmentCard:
-            if development_card != catan.DevelopmentCard.NONE:
-                dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card] + self.development_cards_on_cooldown[development_card]}")
+        for development_card in catan.DevelopmentCards():
+            dpg.set_value(self.dpg_components[f"development_card_{development_card.name.lower()}"], f"{self.development_cards[development_card] + self.development_cards_on_cooldown[development_card]}")
         
         for player in catan.Colour:
             if player != self.colour and player != catan.Colour.NONE:
@@ -396,11 +386,10 @@ class Player(AI):
     
     def __select_cards(self, number: int = 0) -> dict[catan.Resource, int]:
         self.__done_card_selection = False
-        self.__card_selection = {i: 0 for i in catan.Resource if i != catan.Resource.DESERT} # reset the card selection
-        for i in catan.Resource:
-            if i != catan.Resource.DESERT:
-                dpg.configure_item(f"{i.name.lower()} input", max_value = self.resources[i])
-                dpg.set_value(f"{i.name.lower()} input", 0)
+        self.__card_selection = {i: 0 for i in catan.Resources()} # reset the card selection
+        for i in catan.Resources():
+            dpg.configure_item(f"{i.name.lower()} input", max_value = self.resources[i])
+            dpg.set_value(f"{i.name.lower()} input", 0)
                 
         dpg.show_item("card selector")
         
@@ -424,9 +413,8 @@ class Player(AI):
         
         # update maximums
         missing = to_remove - num_selected
-        for i in catan.Resource:
-            if i != catan.Resource.DESERT:
-                dpg.configure_item(f"{i.name.lower()} input", max_value = min(self.__card_selection[i] + missing, self.resources[i]))
+        for i in catan.Resources():
+            dpg.configure_item(f"{i.name.lower()} input", max_value = min(self.__card_selection[i] + missing, self.resources[i]))
     
     def __resource_selection_button_clicked(self, sender, app_data, user_data):
         if sum(self.__card_selection.values()) == sum(self.resources.values()) // 2:
