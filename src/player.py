@@ -175,7 +175,7 @@ class Player(AI):
             case _ as e:
                 raise ValueError(f"tried to place a strange starting settlement number {e} (this should never happen)")
     
-    def discard_half(self) -> dict[catan.Resource, int]:
+    def discard_half(self, board: catan.Board) -> dict[catan.Resource, int]:
         print("discard half your hand")
         return self.__select_cards()
     
@@ -265,11 +265,13 @@ class Player(AI):
                 recieve = self.__select_cards()
                 print("select the cards you would like to recieve")
                 offer = self.__select_cards()
+                print("chose who you'd like to trade with")
+                return
         
         
         return catan.Action(self.__last_pressed_event, None)
     
-    def trade(self, person: catan.Colour, offer: catan.Hand, recieve: catan.Hand) -> bool:
+    def trade(self, person: catan.Colour, offer: catan.Hand, recieve: catan.Hand, board: catan.Board) -> bool:
         # show resources in a dialoge box, and have an accept/deny button
         
         return False

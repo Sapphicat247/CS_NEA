@@ -234,20 +234,20 @@ dpg.render_dearpygui_frame()
 board.draw()
 dpg.render_dearpygui_frame()
 
-for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
+for player_i, settlement_num in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
     board.draw()
     dpg.render_dearpygui_frame()
     settlement_pos = 99999
     while 1:
-        settlement_pos, road_pos = AI_list[i].place_starter_settlement(j, copy_of_board()) # get a move from the AI
+        settlement_pos, road_pos = AI_list[player_i].place_starter_settlement(settlement_num, copy_of_board()) # get a move from the AI
 
         try:
-            board.place_settlement(catan.Colour(i+1), hand=None, position=settlement_pos, need_road=False)
+            board.place_settlement(catan.Colour(player_i+1), hand=None, position=settlement_pos, need_road=False)
             
             if road_pos not in board.verts[settlement_pos].edges:
                 raise catan.BuildingError("Not connected to correct settlement")
         
-            board.place_road(catan.Colour(i+1), hand=None, position=road_pos)
+            board.place_road(catan.Colour(player_i+1), hand=None, position=road_pos)
             
         except catan.BuildingError as e:
             print(e)
@@ -255,11 +255,11 @@ for i, j in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second
         else:
             break
 
-    AI_list[i].victory_points += 1
-    if j == "second":
+    AI_list[player_i].victory_points += 1
+    if settlement_num == "second":
         # give starting resources
         resources = board.get_resources(None, settlement_pos)
-        AI_list[i].resources = resources[AI_list[i].colour]
+        AI_list[player_i].resources = resources[AI_list[player_i].colour]
 
 # MARK: game loop
 current_turn = 0
@@ -284,7 +284,7 @@ while dpg.is_dearpygui_running():
             current_AI.development_cards[development_card] += current_AI.development_cards_on_cooldown[development_card]
             current_AI.development_cards_on_cooldown[development_card] = 0
     
-    # check if they wish to play a dev card
+    # check if they wish to play a dev card before rolling dice
     action = current_AI.roll_dice(copy_of_board())
     match action.event:
         case catan.Event.DICE_ROLL:
@@ -306,7 +306,7 @@ while dpg.is_dearpygui_running():
             if sum(ai.resources.values()) > 7:
                 print(f"{ai.colour.name} has too many cards")
                 
-                discarded = ai.discard_half()
+                discarded = ai.discard_half(copy_of_board())
                 if sum(discarded.values()) != sum(ai.resources.values())//2:
                     raise ValueError(f"{sum(discarded.values())} is not half of your hand of {sum(ai.resources.values())}")
                 
@@ -333,7 +333,7 @@ while dpg.is_dearpygui_running():
             for resource in resources[ai.colour].keys():
                 ai.resources[resource] += resources[ai.colour][resource]
         
-            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), copy_of_board())
+            ai.on_opponent_action(catan.Action(catan.Event.DICE_ROLL, dice), current_AI.colour, copy_of_board())
     
     if update():
         break
@@ -379,7 +379,7 @@ while dpg.is_dearpygui_running():
                     
                     update()
                     
-                    print(f"{current_AI.colour.name}'s longest road is {board.max_road_length(current_AI.colour)} tiles long")
+                    print(f"{current_AI.colour.name}'s longest road is {board.get_longest_road(current_AI.colour)} tiles long")
                     
                 case [catan.Event.BUY_DEV_CARD, None]:
                     if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
@@ -408,7 +408,7 @@ while dpg.is_dearpygui_running():
                     respondants = set()
                     for ai in AI_list:
                         if ai != current_AI:
-                            if ai.trade(current_AI.colour, giving, recieving):
+                            if ai.trade(current_AI.colour, giving, recieving, copy_of_board()):
                                 if not catan.can_afford(ai.resources, recieving):
                                     raise ValueError("you cant afford that trade")
                                 respondants.add(ai.colour)
@@ -459,7 +459,7 @@ while dpg.is_dearpygui_running():
         
         for ai in AI_list:
             if ai != current_AI:
-                ai.on_opponent_action(action, copy_of_board())
+                ai.on_opponent_action(action, ai.colour, copy_of_board())
                 
         # update info pannels for each player
         

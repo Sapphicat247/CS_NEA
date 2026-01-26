@@ -9,7 +9,7 @@ from copy import deepcopy
 # GUI
 import dearpygui.dearpygui as dpg
 
-DEBUG = False
+DEBUG = True
 
 class BuildingError(Exception):
     """error used for when an AI tries to place a building in an invalid location"""
@@ -81,7 +81,7 @@ class Event(Enum):
     P_DISCARDED = 53 # tuple: (person, number of cards)
 
 Location = int
-class Hand  (dict[Resource, int]): pass
+Hand = dict[Resource, int]
 
 EventArg = None | Location | Resource | tuple[Hand, Hand, list[Colour]] | tuple[Resource, Resource] | tuple[Location, Location] | tuple[Colour, Colour] | tuple[Colour, int]
 
@@ -210,12 +210,12 @@ class Board:
         # first ring
         for i in range(6):
             # set "pointers"
-            hexes = [i*2 + 8,       # corner
+            hexes = [i*2 + 8,         # corner
                      (i+1)%6 * 2 + 7, # edge (CW)
-                     (i+1)%6 + 1,   # clockwise
-                     0,             # center
-                     (i+5)%6 + 1,   # anticlockwise
-                     i*2 + 7]       # edge (ACW)
+                     (i+1)%6 + 1,     # clockwise
+                     0,               # center
+                     (i+5)%6 + 1,     # anticlockwise
+                     i*2 + 7]         # edge (ACW)
             
             self.hexes.append(Hex(hexes=rotate(hexes, -i))) # create Hex and add to list
         
@@ -419,7 +419,7 @@ class Board:
 
     # MARK: Placement
     def can_place(self, building: Building, owner: Colour, position: int, hand: dict[Resource, int] | None = None, *, need_road: bool = True) -> bool:
-        """test if a certain AI can build a building.
+        """test if a certain AI can build a building.\n\n
         
         this takes into account the hand of cards and the current board
         
@@ -475,7 +475,7 @@ class Board:
     
     
     def place_settlement(self, owner: Colour, position: int, hand: dict[Resource, int] | None = None, *, need_road: bool = True) -> None:
-        """places a settlement
+        """places a settlement\n\n
         
         Args:
             owner (`Colour`): the owner of the building
@@ -519,7 +519,7 @@ class Board:
             return
     
     def place_city(self, owner: Colour, position: int, hand: dict[Resource, int] | None = None) -> None:
-        """places city
+        """places city\n\n
         
         Args:
             owner (`Colour`): the owner of the building
@@ -544,7 +544,7 @@ class Board:
             raise BuildingError("Cities must be placed on one of your own settlements")
     
     def place_road(self, owner: Colour, position: int, hand: dict[Resource, int] | None = None) -> None:
-        """places road
+        """places road\n\n
         
         Args:
             owner (`Colour`): the owner of the building
@@ -674,15 +674,18 @@ class Board:
         
         self.hexes[pos].hasRobber = True
     
-    def max_road_length(self, colour: Colour):
+    def get_longest_road(self, colour: Colour) -> list[int]:
         # for each starting vertex:
             # find adjacent roads
             # if they are correct
             # recurse on other vertex on the edge
         
+        # returns list of VERTECIES
         
-        def search(start: int, visited_edges: set[int] = set()) -> int:
-            max_path = 0
+        
+        def search(start: int, visited_edges: set[int] = set()) -> list[int]:
+            # start is a vertex
+            max_path = []
             
             found_edge = False
             
@@ -696,16 +699,16 @@ class Board:
                         next_vert = edge.verts[1] if edge.verts[0] == start else edge.verts[0]
                         path = search(next_vert, visited_edges | {edge_i})
                         
-                        if path > max_path:
+                        if len(path) > len(max_path):
                             max_path = path
             
-            return max_path + 1 if found_edge else 0
+            return max_path + [start] if found_edge else [start]
 
-        max_path = 0
+        max_path = []
         
         for i in range(len(self.verts)):
             path = search(i)
-            if path > max_path:
+            if len(path) > len(max_path):
                 max_path = path
         
         return max_path
@@ -716,7 +719,7 @@ class Board:
         
         for player in Colour:
             if player != Colour.NONE:
-                length = self.max_road_length(player)
+                length = len(self.get_longest_road(player))
                 if length > max_length:
                     max_length = length
                     best_player = player
@@ -798,7 +801,7 @@ class Board:
                 
             
             # debug text
-            if DEBUG: dpg.draw_text((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), f"{hex_i}", color=(0, 255, 0, 255), size=size/8, parent="debug")
+            if DEBUG: dpg.draw_text((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), f"{hex_i}", color=(0, 255, 0, 255), size=20, parent="debug")
         
         for vert_i, vert in enumerate(self.verts):
             pos = [i*size for i in vert.relative_pos]
@@ -865,7 +868,7 @@ if __name__ == "__main__":
             board.draw()
             dpg.render_dearpygui_frame()
             
-            print(board.max_road_length(Colour.WHITE))
+            print(board.get_longest_road(Colour.WHITE))
             
     from threading import Thread
     dpg.create_context()
