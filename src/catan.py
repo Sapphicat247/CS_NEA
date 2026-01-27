@@ -916,9 +916,6 @@ if __name__ == "__main__":
             v = int(input())
             board.edges[v].structure = Structure(Colour.WHITE, Building.ROAD) if board.edges[v].structure.owner == Colour.NONE else Structure(Colour.NONE, Building.EMPTY)
             
-            board.draw()
-            dpg.render_dearpygui_frame()
-            
             print(board.get_longest_road(Colour.WHITE))
             
     from threading import Thread
