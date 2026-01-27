@@ -133,15 +133,30 @@ def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
     player.used_dev_card = True    
     player.development_cards[card] -= 1
 
-def bank_trade(giving: catan.Hand, recieving: catan.Hand, player: AI):
-    # the 1 limitation is that you cant mix & match trade types for 1 resource 
-    resources = [i for i in catan.Resources()]
+def bank_trade(giving: dict[catan.Resource, int], recieving: dict[catan.Resource, int], player: AI):
+    # the 1 limitation is that you cant mix & match trade types for 1 resource
     
+    avaliable: dict[catan.Resource, int | float] = {k: v for k, v in giving.items()}
     
+    ports = set()
+    for vert in board.verts:
+        if vert.structure.owner == player.colour:
+            for edge_i in vert.edges:
+                if edge_i is not None and (port := board.edges[edge_i].port) is not None:
+                    ports.add(port.resource)
     
-    # do 2:1, removing from list
+    for resource in ports:
+        if resource != catan.Resource.DESERT:
+            avaliable[resource] /= 2
     
-    # 3:1 the rest if posible, otherwise 4:1
+    rate = 3 if catan.Resource.DESERT in ports else 4
+    
+    for resource in catan.Resources():
+        if resource not in ports:
+            avaliable[resource] /= rate
+    
+    return all(i == int(i) for i in avaliable.values()) and sum(avaliable.values()) == sum(recieving.values())
+
 
 # MARK: start
 
