@@ -289,25 +289,47 @@ class AI_Random(AI):
         return False
 
 class AI_V1(AI_Random):
+    __resource_hexes: set[catan.Resource]
+    
     def __init__(self, colour: catan.Colour, player_number: int) -> None:
         super().__init__(colour, player_number)
+        self.__resource_hexes = set()
     
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         DICE_TO_PROBABILITY = {2:1, 3:2, 4:3, 5:4, 6:5, 7:0, 8:5, 9:4, 10:3, 11:2, 12:1}
         
-        vert_values = {i:0 for i in range(len(board.verts))}
+        vert_values: dict[int, float] = {i: 0 for i in range(len(board.verts))}
+        vert_resources: dict[int, set[catan.Resource]] = {i: set() for i in range(len(board.verts))}
         
+        # for each vertex find the resources and numbers arround it
         for hex in board.hexes:
             for vert_i in hex.verts:
                 vert_values[vert_i] += DICE_TO_PROBABILITY[hex.diceValue]
+                vert_resources[vert_i].add(hex.resource)
         
-        # sort options
+        # combine these into 1 dict to be sorted
+        for i in range(len(board.verts)):
+            vert_values[i] = vert_values[i]/5 + len(vert_resources[i] ^ self.__resource_hexes)/5
+        
+        # iterate over the options in decending order
         for vert_i, probability in sorted(vert_values.items(), key=lambda x: x[1])[::-1]:
             if board.can_place(catan.Building.SETTLEMENT, self.colour, vert_i, need_road=False):
+                self.__resource_hexes.update(vert_resources[vert_i])
                 return vert_i, random.choice(list(i for i in board.verts[vert_i].edges if i is not None))
-            
+        
         else:
             raise LookupError("cant find a valid location (should never happen)")
-            
+    
+    def __get_missing(self, building: catan.Building) -> dict[catan.Resource, int]:
+        # returns the missing resources for a given building
+        return {k: self.resources[k] - v for k, v in catan.get_cost(building).items() if self.resources[k] - v > 0}
+    
+    @property
+    def __resource_wants(self) -> dict[catan.Resource, float]:
+        # calculate a relative 'want' for each resource
         
+        wants = {i: 0 for i in catan.Resources()}
+        for resource in catan.Resources():
+            wants[resource] = 0
         
+        return {k: v/max(wants.values()) for k, v in wants.items()}
