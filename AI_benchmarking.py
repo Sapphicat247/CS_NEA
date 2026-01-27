@@ -7,7 +7,8 @@ import colours
 import dearpygui.dearpygui as dpg
 import random
 
-HAS_HUMAN = True
+HAS_HUMAN = False
+HEADLESS = True
 
 # MARK: start
 
@@ -33,15 +34,19 @@ def copy_of_board():
 
 def update() -> bool:
     """update GUI"""
-    board.draw()
-    dpg.render_dearpygui_frame()
-    
+    if not HEADLESS:
+        board.draw()
+        dpg.render_dearpygui_frame()
+    max_vps = 0
     for ai in AI_list:
         ai.update_gui(copy_of_board())
         
-        if get_real_vps(ai) >= 10:
+        vps = get_real_vps(ai)
+        max_vps = max(max_vps, vps)
+        if vps >= 10:
             return True
     
+    print(f"the highest VPs is: {max_vps}")
     return False
 
 def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
@@ -138,14 +143,15 @@ def bank_trade(giving: catan.Hand, recieving: catan.Hand, player: AI):
 
 # MARK: start
 
-# create dpg widow
-dpg.create_context()
+if not HEADLESS:
+    # create dpg widow
+    dpg.create_context()
 
-# init viewport
-dpg.create_viewport(title='Catan', width=1920, height=1080)
-dpg.setup_dearpygui()
-dpg.show_viewport()
-#dpg.toggle_viewport_fullscreen()
+    # init viewport
+    dpg.create_viewport(title='Catan', width=1920, height=1080)
+    dpg.setup_dearpygui()
+    dpg.show_viewport()
+    #dpg.toggle_viewport_fullscreen()
 # create a board
 board = catan.Board()
 
@@ -165,7 +171,7 @@ def next_turn():
 
 auto_run = -1
 
-if not HAS_HUMAN:    
+if not HAS_HUMAN and not HEADLESS:    
     with dpg.window(label="graphs", pos= (400+39, 0)):
         dpg.add_button(label="next turn", callback=next_turn)
         auto_run = dpg.add_checkbox(label="auto")
@@ -173,13 +179,11 @@ if not HAS_HUMAN:
 
 # MARK: set-up phase
 # choose starting player
-dpg.render_dearpygui_frame()
-board.draw()
-dpg.render_dearpygui_frame()
+update()
 
 for player_i, settlement_num in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
-    board.draw()
-    dpg.render_dearpygui_frame()
+    update()
+    
     settlement_pos = 99999
     while 1:
         settlement_pos, road_pos = AI_list[player_i].place_starter_settlement(settlement_num, copy_of_board()) # get a move from the AI
@@ -207,9 +211,9 @@ for player_i, settlement_num in ((0, "first"), (1, "first"), (2, "first"), (3, "
 # MARK: game loop
 current_turn = 0
 
-while dpg.is_dearpygui_running():
+while HEADLESS or dpg.is_dearpygui_running():
     
-    if not HAS_HUMAN:
+    if not HAS_HUMAN and not HEADLESS:
         while not ready_for_turn and not dpg.get_value(auto_run) and dpg.is_dearpygui_running():
             update()
     
@@ -422,7 +426,8 @@ for ai in AI_list:
         if board.longest_road == ai.colour:
             print("they had the longest road")
 
-while dpg.is_dearpygui_running():
-    dpg.render_dearpygui_frame()
+if not HEADLESS:
+    while dpg.is_dearpygui_running():
+        dpg.render_dearpygui_frame()
 
-dpg.destroy_context()
+    dpg.destroy_context()
