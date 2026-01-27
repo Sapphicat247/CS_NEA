@@ -468,6 +468,11 @@ class Board:
             for port in data["ports"]:
                 self.edges[port["position"]].port = Port(Resource[port["resource"]])
 
+    def enumerate_adjacent_hexes(self, vert: int):
+        for i, hex in enumerate(self.hexes):
+            if vert in hex.verts:
+                yield i, hex
+    
     # MARK: Placement
     def can_place(self, building: Building, owner: Colour, position: int, hand: dict[Resource, int] | None = None, *, need_road: bool = True) -> bool:
         """test if a certain AI can build a building.\n\n
@@ -634,7 +639,7 @@ class Board:
         else:
             raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
         
-        self.update_longest_raod()
+        self.update_longest_road()
     
     def delete_settlement(self, position: int):
         """removes settlement
@@ -725,6 +730,50 @@ class Board:
         
         self.hexes[pos].hasRobber = True
     
+    def shortest_path(self, start: int, end: int, player: Colour, max_depth:int = 15) -> list[int]:
+        
+        distances: dict[int, int] = {start: 0}
+        
+        for _ in range(max_depth):
+            to_add = {}
+            for vert_i, d in distances.items():
+                vert = board.verts[vert_i]
+                
+                for edge_i in vert.edges:
+                    if edge_i is not None:
+                        edge = self.edges[edge_i]
+                        if edge.structure.owner == player or edge.structure.owner == Colour.NONE:
+                            # valid road position
+                            next_vert_i = edge.verts[1] if edge.verts[0] == vert_i else edge.verts[0]
+                            next_vert = self.verts[vert_i]
+                            if next_vert.structure.owner == player or next_vert.structure.owner == Colour.NONE:
+                                # can go through vertex
+                                if next_vert_i not in distances.keys() or distances[next_vert_i] > d+1:
+                                    to_add.update({next_vert_i: d+1})
+            distances.update(to_add)
+        
+        path = [end]
+        vert_i = end
+        while path[0] != start:
+            vert = board.verts[path[0]]
+            
+            
+            for edge_i in vert.edges:
+                if edge_i is not None:
+                    # valid edge around current end of path
+                    edge = self.edges[edge_i]
+                    # find vertex at other end of edge
+                    next_vert_i = edge.verts[1] if edge.verts[0] == path[0] else edge.verts[0]
+                    
+                    if next_vert_i in distances.keys() and distances[next_vert_i] < distances[path[0]]:
+                        # vertex is in list & 
+                        path.insert(0, next_vert_i)
+                        break
+        
+        return path
+                
+                
+    
     def get_longest_road(self, colour: Colour) -> list[int]:
         # for each starting vertex:
             # find adjacent roads
@@ -764,7 +813,7 @@ class Board:
         
         return max_path
     
-    def update_longest_raod(self):
+    def update_longest_road(self):
         max_length = 4
         best_player = Colour.NONE
         
@@ -913,10 +962,7 @@ class Board:
 if __name__ == "__main__":
     def loop():
         while 1:
-            v = int(input())
-            board.edges[v].structure = Structure(Colour.WHITE, Building.ROAD) if board.edges[v].structure.owner == Colour.NONE else Structure(Colour.NONE, Building.EMPTY)
-            
-            print(board.get_longest_road(Colour.WHITE))
+            print(board.shortest_path(int(input()), int(input()), Colour.WHITE))
             
     from threading import Thread
     dpg.create_context()
