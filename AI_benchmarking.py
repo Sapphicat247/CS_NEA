@@ -8,7 +8,7 @@ import dearpygui.dearpygui as dpg
 import random
 
 HAS_HUMAN = False
-HEADLESS = True
+HEADLESS = False
 
 # MARK: start
 
@@ -136,6 +136,8 @@ def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
 def bank_trade(giving: catan.Hand, recieving: catan.Hand, player: AI):
     # the 1 limitation is that you cant mix & match trade types for 1 resource 
     resources = [i for i in catan.Resources()]
+    
+    
     
     # do 2:1, removing from list
     
@@ -350,39 +352,35 @@ while HEADLESS or dpg.is_dearpygui_running():
                     if not catan.can_afford(current_AI.resources, giving):
                         raise ValueError("you cant afford that trade")
                     
-                    # check with players
-                    respondants = set()
-                    for ai in AI_list:
-                        if ai != current_AI:
-                            if ai.trade(current_AI.colour, giving, recieving, copy_of_board()):
-                                if not catan.can_afford(ai.resources, recieving):
-                                    raise ValueError("you cant afford that trade")
-                                respondants.add(ai.colour)
-                    
-                    # check with bank
-                    if bank_trade(giving, recieving, current_AI):
-                        respondants.add(catan.Colour.NONE)
-                                                    
-                    for player in preferances:
-                        if player in respondants:
-                            # both parties agreed
-                            if player != catan.Colour.NONE:
-                                # ai / person
-                                player = get_by_colour(player)
+                    for person in preferances:
+                        if person == catan.Colour.NONE and bank_trade(giving, recieving, current_AI):
+                            # asked to use bank & is valid
+                            for resource in catan.Resources():
+                                current_AI.resources[resource] += recieving[resource]
+                                current_AI.resources[resource] -= giving[resource]
+                            break
+                        
+                        for other_ai in AI_list:
+                            if other_ai != current_AI and other_ai.trade(current_AI.colour, giving, recieving, copy_of_board()):
+                                # player & they agreed
+                                if not catan.can_afford(other_ai.resources, recieving):
+                                    raise ValueError(f"{other_ai.colour.name.capitalize()} cant afford that trade")
+                                
+                                print(f"{current_AI.colour.name.capitalize()} traded with {other_ai.colour.name.capitalize()}")
+                                
+                                # they can afford it
                                 for resource in catan.Resources():
                                     current_AI.resources[resource] += recieving[resource]
-                                    player.resources[resource] -= recieving[resource]
+                                    other_ai.resources[resource] -= recieving[resource]
                                     
                                     current_AI.resources[resource] -= giving[resource]
-                                    player.resources[resource] += giving[resource]
-                            else:
-                                # bank
-                                for resource in catan.Resources():
-                                    current_AI.resources[resource] += recieving[resource]
-                                    current_AI.resources[resource] -= giving[resource]
-                                
-                                
-                                    
+                                    other_ai.resources[resource] += giving[resource]
+                                break
+                            
+                        # if the inner loop exited early, break agian, else do nothing
+                        else:
+                            continue
+                        break        
                 
                 case [catan.Event.USE_KNIGHT | catan.Event.USE_MONOPOLY | catan.Event.USE_ROAD_BUILDING |catan.Event.USE_YEAR_OF_PLENTY, _]:
                     card = catan.DevelopmentCard[action.event.name.removeprefix("USE_")]
@@ -397,7 +395,7 @@ while HEADLESS or dpg.is_dearpygui_running():
             else:
                 raise e
         
-        board.update_longest_raod()
+        board.update_longest_road()
         # if it gets to here, action was succesfull.
         # so notify players and update gui
         
