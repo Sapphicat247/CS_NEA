@@ -7,7 +7,8 @@ import colours
 import dearpygui.dearpygui as dpg
 import random
 
-HAS_HUMAN = True
+HAS_HUMAN = False
+HEADLESS = False
 
 # MARK: start
 
@@ -33,8 +34,9 @@ def copy_of_board():
 
 def update() -> bool:
     """update GUI"""
-    board.draw()
-    dpg.render_dearpygui_frame()
+    if not HEADLESS:
+        board.draw()
+        dpg.render_dearpygui_frame()
     
     for ai in AI_list:
         ai.update_gui(copy_of_board())
@@ -138,14 +140,15 @@ def bank_trade(giving: catan.Hand, recieving: catan.Hand, player: AI):
 
 # MARK: start
 
-# create dpg widow
-dpg.create_context()
+if not HEADLESS:
+    # create dpg widow
+    dpg.create_context()
 
-# init viewport
-dpg.create_viewport(title='Catan', width=1920, height=1080)
-dpg.setup_dearpygui()
-dpg.show_viewport()
-#dpg.toggle_viewport_fullscreen()
+    # init viewport
+    dpg.create_viewport(title='Catan', width=1920, height=1080)
+    dpg.setup_dearpygui()
+    dpg.show_viewport()
+    #dpg.toggle_viewport_fullscreen()
 # create a board
 board = catan.Board()
 
@@ -165,7 +168,7 @@ def next_turn():
 
 auto_run = -1
 
-if not HAS_HUMAN:    
+if not HAS_HUMAN and not HEADLESS:    
     with dpg.window(label="graphs", pos= (400+39, 0)):
         dpg.add_button(label="next turn", callback=next_turn)
         auto_run = dpg.add_checkbox(label="auto")
@@ -173,13 +176,11 @@ if not HAS_HUMAN:
 
 # MARK: set-up phase
 # choose starting player
-dpg.render_dearpygui_frame()
-board.draw()
-dpg.render_dearpygui_frame()
+update()
 
 for player_i, settlement_num in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
-    board.draw()
-    dpg.render_dearpygui_frame()
+    update()
+    
     settlement_pos = 99999
     while 1:
         settlement_pos, road_pos = AI_list[player_i].place_starter_settlement(settlement_num, copy_of_board()) # get a move from the AI
