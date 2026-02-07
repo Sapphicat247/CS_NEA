@@ -1,2 +1,3 @@
 __pycache__/
-demo.py
+demo*.py
+test*.py

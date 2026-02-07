@@ -9,7 +9,7 @@ from copy import deepcopy
 # GUI
 import dearpygui.dearpygui as dpg
 
-DEBUG = True
+DEBUG = False
 
 class BuildingError(Exception):
     """error used for when an AI tries to place a building in an invalid location"""
@@ -428,16 +428,17 @@ class Board:
         if data == None: # board set-up not specified
             
             #                 A  B  C ...                                  ... P  Q  R
-            probablilities = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11] # ordered as per letters on the backs of the chits
+            probablilities = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11]
+            # ordered as per letters on the backs of the chits
             
             # list of all resource hexes, 4 grain, 4 wool, 4 wood, 3 ore, 3 brick, 1 dessert
             resources = [Resource.GRAIN]*4 + [Resource.WOOL]*4 + [Resource.WOOD]*4 + [Resource.ORE]*3 + [Resource.BRICK]*3 + [Resource.DESERT]*1
             random.shuffle(resources) # randomise them so they are placed differently
             
             for i in self.hexes:
-                i.resource = resources.pop(0)
+                i.resource = resources.pop()
                 if i.resource != Resource.DESERT:
-                    i.diceValue = probablilities.pop(0)
+                    i.diceValue = probablilities.pop()
                 else:
                     i.diceValue = 7
                     i.hasRobber = True
@@ -904,7 +905,6 @@ class Board:
             if DEBUG: dpg.draw_text((hex.relative_pos[0]*size + center[0], hex.relative_pos[1]*size + center[1]), f"{hex_i}", color=(0, 255, 0, 255), size=20, parent="debug")
         
         for vert_i, vert in enumerate(self.verts):
-            pos = [i*size for i in vert.relative_pos]
             
             if vert.structure.owner != Colour.NONE:
                 colour = player_colour_lookup[vert.structure.owner]
@@ -962,7 +962,8 @@ class Board:
 if __name__ == "__main__":
     def loop():
         while 1:
-            print(board.shortest_path(int(input()), int(input()), Colour.WHITE))
+            v = int(input())
+            board.edges[v].structure = Structure(Colour.WHITE, Building.ROAD) if board.edges[v].structure.owner == Colour.NONE else Structure(Colour.NONE, Building.EMPTY)
             
     from threading import Thread
     dpg.create_context()

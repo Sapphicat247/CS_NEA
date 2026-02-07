@@ -11,7 +11,7 @@ class AI:
     development_cards: dict[catan.DevelopmentCard, int]
     development_cards_on_cooldown: dict[catan.DevelopmentCard, int]
     colour: catan.Colour
-    ansi_colour: str
+    # ansi_colour: str
     army_size: int
     used_dev_card: bool
     is_human: bool
@@ -29,12 +29,12 @@ class AI:
         self.used_dev_card = False
         self.is_human = False
         
-        self.ansi_colour = {
-            catan.Colour.RED: colours.fg.RED,
-            catan.Colour.ORANGE: colours.fg.ORANGE,
-            catan.Colour.BLUE: colours.fg.BLUE,
-            catan.Colour.WHITE: colours.fg.WHITE,
-        }[self.colour] + colours.bg.RGB(0, 0, 0)
+        # self.ansi_colour = {
+        #     catan.Colour.RED: colours.fg.RED,
+        #     catan.Colour.ORANGE: colours.fg.ORANGE,
+        #     catan.Colour.BLUE: colours.fg.BLUE,
+        #     catan.Colour.WHITE: colours.fg.WHITE,
+        # }[self.colour] + colours.bg.RGB(0, 0, 0)
     
     def update_gui(self, board: catan.Board) -> None:
         """updates any custom GUI elements.\n\n
@@ -242,8 +242,8 @@ class AI_Random(AI):
     
     def __get_position_options(self, building: catan.Building, board: catan.Board):
         match building:
-            case catan.Building.CITY | catan.Building.SETTLEMENT | catan.Building.ROAD:
-                return {i for i in range(len(board.verts)) if board.can_place(building, self.colour, hand=self.resources, position=i)}
+            case catan.Building.CITY | catan.Building.SETTLEMENT | catan.Building.ROAD as b:
+                return {i for i in range(len(board.edges if b == catan.Building.ROAD else board.verts)) if board.can_place(building, self.colour, hand=self.resources, position=i)}
             
             case catan.Building.DEVELOPMENT_CARD:
                 raise ValueError("you can't 'place' a development card")
@@ -329,12 +329,10 @@ class AI_V1(AI_Random):
         # returns the missing resources for a given building
         return {k: self.resources[k] - v for k, v in catan.get_cost(building).items() if self.resources[k] - v > 0}
 
-    def do_action(self, board: catan.Board):
-        if not self.__goals["settlement"]:
-            # find best location for a settlement
-            ...
+    # def do_action(self, board: catan.Board):
+    #     if not self.__goals["settlement"]:
+    #         # find best location for a settlement
+    #         ...
             
         
-        return catan.Action(catan.Event.END_TURN, None)
-    
-    
+    #     return catan.Action(catan.Event.END_TURN, None)

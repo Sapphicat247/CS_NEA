@@ -433,7 +433,7 @@ while HEADLESS or dpg.is_dearpygui_running():
 
 for ai in AI_list:
     if get_real_vps(ai) >= 10:
-        print(f"{ai.ansi_colour}{ai.colour.name} WON!{colours.END}")
+        print(f"{ai.colour.name} WON!")
         if board.largest_army == ai.colour:
             print("they had the largest army")
         if board.longest_road == ai.colour:
