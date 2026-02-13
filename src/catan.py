@@ -720,8 +720,7 @@ class Board:
     
     def set_robber_pos(self, pos: int):
         """places the robber on a hex"""
-        if pos < 0 or pos > 18:
-            raise ValueError("you must choose a hex number between 0 and 18 inclusive")
+        assert 0 <= pos <= 18
         
         if pos == self.robber_pos:
             raise ValueError("you can't put the robber on the same hex it started on")
@@ -855,14 +854,14 @@ class Board:
         dpg.delete_item("verts", children_only=True) # clear
         dpg.delete_item("debug", children_only=True) # clear
         
-        hex_colour_lookup = {Resource.DESERT: (204, 176, 104, 255),
+        HEX_COLOUR_LOOKUP = {Resource.DESERT: (204, 176, 104, 255),
                              Resource.WOOD:   (45,  82,  44,  255),
                              Resource.WOOL:   (82,  230, 78,  255),
                              Resource.BRICK:  (204, 82,  20,  255),
                              Resource.ORE:    (115, 131, 156, 255),
                              Resource.GRAIN:  (237, 237, 69,  255)}
         
-        player_colour_lookup = {Colour.RED:    (255, 0,   0,   255),
+        PLAYER_COLOUR_LOOKUP = {Colour.RED:    (255, 0,   0,   255),
                                 Colour.ORANGE: (255, 127, 44,  255),
                                 Colour.BLUE:   (0,   0,   255, 255),
                                 Colour.WHITE:  (255, 255, 255,  255)}
@@ -882,7 +881,7 @@ class Board:
             vert_positions = [self.verts[i].relative_pos for i in hex.verts if i != None]
             vert_positions = [[i[0]*size + center[0], i[1]*size + center[1]] for i in vert_positions]
             
-            dpg.draw_polygon(vert_positions, fill=hex_colour_lookup[hex.resource], parent="hexes", color=(0,0,0,0))
+            dpg.draw_polygon(vert_positions, fill=HEX_COLOUR_LOOKUP[hex.resource], parent="hexes", color=(0,0,0,0))
             
             # dice number / robber
             if hex.hasRobber:
@@ -907,7 +906,7 @@ class Board:
         for vert_i, vert in enumerate(self.verts):
             
             if vert.structure.owner != Colour.NONE:
-                colour = player_colour_lookup[vert.structure.owner]
+                colour = PLAYER_COLOUR_LOOKUP[vert.structure.owner]
                 
                 dpg.draw_circle((vert.relative_pos[0]*size + center[0], vert.relative_pos[1]*size + center[1]), size/6, fill=colour, parent="verts", color=(0,0,0,0))
             
@@ -919,7 +918,7 @@ class Board:
             
         for edge_i, edge in enumerate(self.edges):
             if edge.structure.owner != Colour.NONE:
-                colour = player_colour_lookup[edge.structure.owner]
+                colour = PLAYER_COLOUR_LOOKUP[edge.structure.owner]
                 
                 p0 = (self.verts[edge.verts[0]].relative_pos[0]*size + center[0], self.verts[edge.verts[0]].relative_pos[1]*size + center[1])
                 p1 = (self.verts[edge.verts[1]].relative_pos[0]*size + center[0], self.verts[edge.verts[1]].relative_pos[1]*size + center[1])
@@ -948,7 +947,7 @@ class Board:
                         dpg.draw_line(p0, p, color=(80,60,0), parent="edges", thickness=size/18)
                         dpg.draw_line(p1, p, color=(80,60,0), parent="edges", thickness=size/18)
                         
-                        dpg.draw_circle(p, size/5, fill=hex_colour_lookup[edge.port.resource], color=(0,0,0), parent="edges")
+                        dpg.draw_circle(p, size/5, fill=HEX_COLOUR_LOOKUP[edge.port.resource], color=(0,0,0), parent="edges")
                         dpg.draw_text((p[0]-size/12, p[1]-size/16), f"{"3:1" if edge.port.resource == Resource.DESERT else "2:1"}", color=(0,0,0), size=size/8, parent="debug")
                 
             

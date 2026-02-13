@@ -1,6 +1,5 @@
 from src import catan
 import random
-import colours
 import dearpygui.dearpygui as dpg
 
 class AI:
