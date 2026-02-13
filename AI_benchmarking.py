@@ -35,15 +35,16 @@ def update() -> bool:
     if not HEADLESS:
         board.draw()
         dpg.render_dearpygui_frame()
+        
     max_vps = 0
     for ai in AI_list:
-        ai.update_gui(copy_of_board())
+        if not HAS_HUMAN or ai.is_human:
+            ai.update_gui(copy_of_board())
         
         vps = get_real_vps(ai)
         max_vps = max(max_vps, vps)
         if vps >= 10:
             return True
-    
     return False
 
 def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
@@ -102,6 +103,7 @@ def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
                     # no players with a larger or equal army size
                     board.largest_army = player.colour
                     print(f"{player.colour.name.lower()} got the largest army card")
+                    if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{player.colour.name.lower()} got the largest army card")
                 
         
         case [catan.DevelopmentCard.YEAR_OF_PLENTY, [resource_1, resource_2]] if type(resource_1) == catan.Resource and type(resource_2) == catan.Resource:
@@ -165,7 +167,10 @@ if not HEADLESS:
     dpg.create_viewport(title='Catan', width=1920, height=1080)
     dpg.setup_dearpygui()
     dpg.show_viewport()
-    #dpg.toggle_viewport_fullscreen()
+    
+    dpg.set_global_font_scale(2)
+    dpg.toggle_viewport_fullscreen()
+    
 # create a board
 board = catan.Board()
 
@@ -173,9 +178,9 @@ board = catan.Board()
 
 AI_list: list[AI] = [
     Player(catan.Colour.RED, 0) if HAS_HUMAN else CURRENT_AI(catan.Colour.RED, 0),
-    CURRENT_AI(catan.Colour.ORANGE, 1),
-    CURRENT_AI(catan.Colour.BLUE, 2),
-    CURRENT_AI(catan.Colour.WHITE, 3),
+    CURRENT_AI(catan.Colour.ORANGE, 1, draw_gui = not HAS_HUMAN),
+    CURRENT_AI(catan.Colour.BLUE, 2, draw_gui = not HAS_HUMAN),
+    CURRENT_AI(catan.Colour.WHITE, 3, draw_gui = not HAS_HUMAN),
 ]
 
 ready_for_turn = True
@@ -193,6 +198,8 @@ if not HAS_HUMAN and not HEADLESS:
 
 # MARK: set-up phase
 # choose starting player
+update()
+update()
 update()
 
 for player_i, settlement_num in ((0, "first"), (1, "first"), (2, "first"), (3, "first"), (3, "second"), (2, "second"), (1, "second"), (0, "second")):
@@ -212,6 +219,7 @@ for player_i, settlement_num in ((0, "first"), (1, "first"), (2, "first"), (3, "
             
         except catan.BuildingError as e:
             print(e)
+            if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + str(e))
             board.delete_settlement(settlement_pos)
         else:
             break
@@ -237,6 +245,7 @@ while HEADLESS or dpg.is_dearpygui_running():
     ready_for_turn = False
     current_AI = AI_list[current_turn]
     print(f"its {current_AI.colour.name.capitalize()}'s turn")
+    if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"its {current_AI.colour.name.capitalize()}'s turn")
     
     # give the ai it's dev_cards which are on cooldown & reset if they've played one already this turn
     current_AI.used_dev_card = False
@@ -258,6 +267,7 @@ while HEADLESS or dpg.is_dearpygui_running():
 
     dice = random.randint(1, 6) + random.randint(1, 6)
     print(f"{"An" if dice == 8 or dice == 11 else "A"} {dice} was rolled")
+    if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{"An" if dice == 8 or dice == 11 else "A"} {dice} was rolled")
     
     if dice == 7:
         print("7 rolled")
@@ -265,6 +275,7 @@ while HEADLESS or dpg.is_dearpygui_running():
         for ai in AI_list:
             if sum(ai.resources.values()) > 7:
                 print(f"{ai.colour.name} has too many cards")
+                if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{ai.colour.name} has too many cards")
                 
                 discarded = ai.discard_half(copy_of_board())
                 if sum(discarded.values()) != sum(ai.resources.values())//2:
@@ -359,6 +370,7 @@ while HEADLESS or dpg.is_dearpygui_running():
                             current_AI.development_cards_on_cooldown[card] += 1
                     except IndexError:
                         print("no development cards left")
+                        if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "no development cards left")
                 
                 case [catan.Event.TRADE, [giving, recieving, preferances]]:
                     if not catan.can_afford(current_AI.resources, giving):
@@ -379,6 +391,7 @@ while HEADLESS or dpg.is_dearpygui_running():
                                     raise ValueError(f"{other_ai.colour.name.capitalize()} cant afford that trade")
                                 
                                 print(f"{current_AI.colour.name.capitalize()} traded with {other_ai.colour.name.capitalize()}")
+                                if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{current_AI.colour.name.capitalize()} traded with {other_ai.colour.name.capitalize()}")
                                 
                                 # they can afford it
                                 for resource in catan.Resources():
@@ -404,6 +417,7 @@ while HEADLESS or dpg.is_dearpygui_running():
         except Exception as e:
             if current_AI.is_human:
                 print(e)
+                if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + str(e))
             else:
                 raise e
         
@@ -431,10 +445,13 @@ while HEADLESS or dpg.is_dearpygui_running():
 for ai in AI_list:
     if get_real_vps(ai) >= 10:
         print(f"{ai.colour.name} WON!")
+        if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{ai.colour.name} WON!")
         if board.largest_army == ai.colour:
             print("they had the largest army")
+            if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "they had the largest army")
         if board.longest_road == ai.colour:
             print("they had the longest road")
+            if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "they had the longest road")
 
 if not HEADLESS:
     while dpg.is_dearpygui_running():

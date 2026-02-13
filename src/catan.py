@@ -874,7 +874,7 @@ class Board:
         horizontal_size = width//8.660254038 # 5*sqrt(3)
         
         size = min(vert_size, horizontal_size)*.9 # side length
-        center = (width//2, height//2)
+        center = (width//2 + 4*abs(size-horizontal_size), height//2)
 
         for hex_i, hex in enumerate(self.hexes):
             # get positions

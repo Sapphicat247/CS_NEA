@@ -16,7 +16,7 @@ class AI:
     is_human: bool
     player_number: int
     
-    def __init__(self, colour: catan.Colour, player_number: int) -> None:
+    def __init__(self, colour: catan.Colour, player_number: int, draw_gui: bool) -> None:
         self.victory_points = 0
         self.resources = {i: 0 for i in catan.Resources()}
         self.development_cards = {i: 0 for i in catan.DevelopmentCards()}
@@ -155,34 +155,35 @@ class AI_Random(AI):
     # basic class to build other versions off
     # AIs are not trusted to make legal moves, however the AI will have to avoid infinite loops by always attempting an illegal move
 
-    def __init__(self, colour: catan.Colour, player_number: int) -> None:
-        super().__init__(colour, player_number)
+    def __init__(self, colour: catan.Colour, player_number: int, draw_gui: bool = True) -> None:
+        super().__init__(colour, player_number, draw_gui)
         
         # dubug GUI
-        with dpg.window(width=500, height=400, pos=((0,0), (0,1440-400-39), (2560-300-16, 0), (2560-300-16, 1440-400-39))[self.player_number], label=f"{self.colour.name.capitalize()}"):
-            dpg.add_text(f"{0} VPs", tag=f"{self.colour.name}_vps_and_info")
-            
-            with dpg.tab_bar():
-                with dpg.tab(label = "Hand"):
-                    dpg.add_text(f"\nresources:")
-                    with dpg.table(header_row=False):
-                        dpg.add_table_column()
-                        dpg.add_table_column()
+        if draw_gui:
+            with dpg.window(width=500, height=400, pos=((0,0), (0,1440-400-39), (2560-300-16, 0), (2560-300-16, 1440-400-39))[self.player_number], label=f"{self.colour.name.capitalize()}"):
+                dpg.add_text(f"{0} VPs", tag=f"{self.colour.name}_vps_and_info")
+                
+                with dpg.tab_bar():
+                    with dpg.tab(label = "Hand"):
+                        dpg.add_text(f"\nresources:")
+                        with dpg.table(header_row=False):
+                            dpg.add_table_column()
+                            dpg.add_table_column()
+                            
+                            for resource in catan.Resources():
+                                with dpg.table_row():
+                                    dpg.add_text(resource.name.capitalize())
+                                    dpg.add_text("0", tag=f"{self.colour.name}_resource_{resource.name}")
                         
-                        for resource in catan.Resources():
-                            with dpg.table_row():
-                                dpg.add_text(resource.name.capitalize())
-                                dpg.add_text("0", tag=f"{self.colour.name}_resource_{resource.name}")
-                    
-                    dpg.add_text(f"\nDevelopment cards:")
-                    with dpg.table(header_row=False):
-                        dpg.add_table_column()
-                        dpg.add_table_column()
-                        
-                        for development_card in catan.DevelopmentCards():
-                            with dpg.table_row():
-                                dpg.add_text(development_card.name.lower().replace("_", " "))
-                                dpg.add_text("0", tag=f"{self.colour.name}_development_card_{development_card.name}")
+                        dpg.add_text(f"\nDevelopment cards:")
+                        with dpg.table(header_row=False):
+                            dpg.add_table_column()
+                            dpg.add_table_column()
+                            
+                            for development_card in catan.DevelopmentCards():
+                                with dpg.table_row():
+                                    dpg.add_text(development_card.name.lower().replace("_", " "))
+                                    dpg.add_text("0", tag=f"{self.colour.name}_development_card_{development_card.name}")
     
     def update_gui(self, board: catan.Board) -> None:
         dpg.set_value(f"{self.colour.name}_vps_and_info", f"{self.victory_points} VPs {"(K) " if board.largest_army == self.colour else ""}{"(R)" if board.longest_road == self.colour else ""}")
@@ -284,8 +285,8 @@ class AI_V1(AI_Random):
     __resource_hexes: set[catan.Resource]
     __goals: dict[str, catan.Action | None]
     
-    def __init__(self, colour: catan.Colour, player_number: int) -> None:
-        super().__init__(colour, player_number)
+    def __init__(self, colour: catan.Colour, player_number: int, draw_gui: bool = True) -> None:
+        super().__init__(colour, player_number, draw_gui)
         self.__resource_hexes = set()
         self.__goals = {}
     
