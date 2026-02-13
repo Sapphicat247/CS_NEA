@@ -112,7 +112,7 @@ class Player(AI):
                     dpg.add_button(label="end turn", callback=self.__gui_button_pressed, user_data=catan.Event.END_TURN)
 
         with dpg.window(width=main_width, height=600, pos=(0,main_height), no_close=True):
-            dpg.add_input_text(tag="text output box", multiline=True, enabled=False, width=main_width-50, height=550)
+            dpg.add_text(tag="text output box", tracked=True, wrap=main_width, track_offset=1)
         
         with dpg.window(width=150, height=100, show=False, tag="player selector", label="select a player", no_close=True, pos=(main_width,0)):
             dpg.add_button(label="Red", show=False, callback=self.__colour_selected, user_data=catan.Colour.RED, tag="red button")
