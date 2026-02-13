@@ -27,18 +27,11 @@ class AI:
         self.army_size = 0
         self.used_dev_card = False
         self.is_human = False
-        
-        # self.ansi_colour = {
-        #     catan.Colour.RED: colours.fg.RED,
-        #     catan.Colour.ORANGE: colours.fg.ORANGE,
-        #     catan.Colour.BLUE: colours.fg.BLUE,
-        #     catan.Colour.WHITE: colours.fg.WHITE,
-        # }[self.colour] + colours.bg.RGB(0, 0, 0)
     
     def update_gui(self, board: catan.Board) -> None:
         """updates any custom GUI elements.\n\n
         
-        called when the dpg ui is drawn, can be used if you have any custom 
+        called when the dpg ui is drawn, elements can be created dynamicaly, or in the init
         
         Args:
             board (Board): a copy of the game board
@@ -52,7 +45,7 @@ class AI:
     def place_starter_settlement(self, settlement_number: str, board: catan.Board) -> tuple[int, int]:
         """places first 2 settlements.\n\n
         
-        called at the start to set up the board
+        called twice at the start to set up the board
         
         Args:
             settlement_number (str): if it is the 'first' or 'second' settlement
@@ -95,7 +88,7 @@ class AI:
     def roll_dice(self, board: catan.Board) -> catan.Action:
         """have pre-dice action.\n\n
         
-        called before your dice roll, so you can play a development card
+        called before your dice roll, so you may play a development card
         
         Args:
             board (Board): a copy of the game board

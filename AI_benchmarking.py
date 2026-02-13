@@ -2,8 +2,6 @@ from src import catan
 from src.ai import AI, AI_Random as OLD_AI, AI_V1 as CURRENT_AI
 from src.player import Player
 
-import colours
-
 import dearpygui.dearpygui as dpg
 import random
 
