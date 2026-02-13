@@ -5,7 +5,7 @@ from src.player import Player
 import dearpygui.dearpygui as dpg
 import random
 
-HAS_HUMAN = False
+HAS_HUMAN = True
 HEADLESS = False
 
 # MARK: start
@@ -44,7 +44,6 @@ def update() -> bool:
         if vps >= 10:
             return True
     
-    print(f"the highest VPs is: {max_vps}")
     return False
 
 def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
