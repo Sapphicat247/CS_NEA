@@ -460,5 +460,3 @@ if not HEADLESS:
 runtime = time.time() - start_time
 
 print("execution took %s seconds" % (runtime))
-with open("stats.txt", "a") as f:
-    f.write(f"%s\n" % (runtime))
