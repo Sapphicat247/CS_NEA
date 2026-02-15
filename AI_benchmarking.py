@@ -27,10 +27,10 @@ def get_real_vps(ai: AI) -> int:
     return ai.victory_points + ai.development_cards[catan.DevelopmentCard.VICTORY_POINT] + (2 if board.largest_army == ai.colour else 0) + (2 if board.longest_road == ai.colour else 0)
 
 def copy_of_board():
-    b = board.safe_copy
-    b.player_info = {i: {"res_cards": sum(get_by_colour(i).resources.values()), "dev_cards": sum(get_by_colour(i).development_cards.values()) + sum(get_by_colour(i).development_cards_on_cooldown.values())} for i in catan.Colours()}
+    #b = board.safe_copy()
+    #b.player_info = {i: {"res_cards": sum(get_by_colour(i).resources.values()), "dev_cards": sum(get_by_colour(i).development_cards.values()) + sum(get_by_colour(i).development_cards_on_cooldown.values())} for i in catan.Colours()}
     
-    return b
+    return board
 
 def update() -> bool:
     """update GUI"""
@@ -157,6 +157,9 @@ def bank_trade(giving: dict[catan.Resource, int], recieving: dict[catan.Resource
     
     return all(i == int(i) for i in avaliable.values()) and sum(avaliable.values()) == sum(recieving.values())
 
+board: catan.Board
+AI_list: list[AI]
+
 def run_game(print_output: bool = True):
     # MARK: start
     start_time = time.time()
@@ -180,7 +183,7 @@ def run_game(print_output: bool = True):
     # create AIs
 
     global AI_list
-    AI_list: list[AI] = [
+    AI_list = [
         Player(catan.Colour.RED, 0) if HAS_HUMAN else CURRENT_AI(catan.Colour.RED, 0),
         CURRENT_AI(catan.Colour.ORANGE, 1, draw_gui = not HAS_HUMAN),
         CURRENT_AI(catan.Colour.BLUE, 2, draw_gui = not HAS_HUMAN),
@@ -212,19 +215,20 @@ def run_game(print_output: bool = True):
         settlement_pos = 99999
         while 1:
             settlement_pos, road_pos = AI_list[player_i].place_starter_settlement(settlement_num, copy_of_board()) # get a move from the AI
-
+            test_board = board.safe_copy()
             try:
-                board.place_settlement(catan.Colour(player_i+1), hand=None, position=settlement_pos, need_road=False)
+                test_board.place_settlement(catan.Colour(player_i+1), hand=None, position=settlement_pos, need_road=False)
                 
                 if road_pos not in board.verts[settlement_pos].edges:
                     raise catan.BuildingError("Not connected to correct settlement")
             
-                board.place_road(catan.Colour(player_i+1), hand=None, position=road_pos)
+                test_board.place_road(catan.Colour(player_i+1), hand=None, position=road_pos)
                 
             except catan.BuildingError as e:
                 if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + str(e))
-                board.delete_settlement(settlement_pos)
             else:
+                board.place_settlement(catan.Colour(player_i+1), hand=None, position=settlement_pos, need_road=False)
+                board.place_road(catan.Colour(player_i+1), hand=None, position=road_pos)
                 break
 
         AI_list[player_i].victory_points += 1

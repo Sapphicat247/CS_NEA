@@ -831,7 +831,6 @@ class Board:
         self.longest_road = best_player
                 
     
-    @property
     def safe_copy(self):
         """hide info the AIs are not allowed to see"""
         new_board = deepcopy(self)
