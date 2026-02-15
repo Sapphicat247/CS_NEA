@@ -86,12 +86,13 @@ class Player(AI):
                         dpg.add_table_column(label="developmeant cards")
                         
                         for player in catan.Colours():
-                            with dpg.table_row():
-                                with dpg.group(horizontal=True):
-                                    dpg.add_text(player.name.lower())
-                                    dpg.add_text("", tag=f"{player.name.lower()}_extras")
-                                dpg.add_text("0", tag=f"{player.name.lower()}_num_res_cards")
-                                dpg.add_text("0", tag=f"{player.name.lower()}_num_dev_cards")
+                            if player != self.colour:
+                                with dpg.table_row():
+                                    with dpg.group(horizontal=True):
+                                        dpg.add_text(player.name.lower())
+                                        dpg.add_text("", tag=f"{player.name.lower()}_extras")
+                                    dpg.add_text("0", tag=f"{player.name.lower()}_num_res_cards")
+                                    dpg.add_text("0", tag=f"{player.name.lower()}_num_dev_cards")
                 
                 with dpg.tab(label = "Turn", show=True, ):
                     dpg.add_button(label="Roll Dice", callback=self.__gui_button_pressed, user_data=catan.Event.DICE_ROLL)
@@ -202,6 +203,10 @@ class Player(AI):
         self.__last_pressed_event = None
         
         dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "It's the start of your turn, you may play a development card before rolling the dice")
+        
+        # TODO remove testing ##############################
+        self.resources = {i: 100 for i in catan.Resources()}
+        # TODO remove testing ##############################
         
         if sum(v for k, v in self.development_cards.items() if k != catan.DevelopmentCard.VICTORY_POINT) > 0:
             # has a development card
@@ -432,7 +437,7 @@ class Player(AI):
                 dpg.configure_item(f"{i.name.lower()} input", max_value = min(self.__card_selection[i] + missing, self.resources[i]))
     
     def __resource_selection_button_clicked(self, sender, app_data, user_data):
-        if (not self.__trading) or sum(self.__card_selection.values()) == sum(self.resources.values()) // 2:
+        if sum(self.__card_selection.values()) == sum(self.resources.values()) // 2:
             # selected enough cards
             self.__done_card_selection = True
     

@@ -291,6 +291,7 @@ class AI_V1(AI_Random):
         self.__goals = {}
     
     def __ranked_settlement_positions_iterator(self, board: catan.Board, *, need_road: bool = True):
+        # converts a dice value to probability /36
         DICE_TO_PROBABILITY = {2:1, 3:2, 4:3, 5:4, 6:5, 7:0, 8:5, 9:4, 10:3, 11:2, 12:1}
         
         vert_values: dict[int, float] = {i: 0 for i in range(len(board.verts))}

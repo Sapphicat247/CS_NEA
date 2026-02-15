@@ -618,29 +618,32 @@ class Board:
         if sum(1 for i in self.edges if i.structure == Structure(owner, Building.ROAD)) >= 15:
             raise BuildingError("You have used all of you roads")
         
+        # road that player wants to build
         road = self.edges[position]
         
         # must be connected to players road or city / settlement. cant place through another player's settlement
         if road.structure != Structure(): # not empty
             raise BuildingError("Cannot build a road over another one")
         
+        # the vertices on each end of the road
         adj_verts = [self.verts[i] for i in road.verts]
         
         for vert in adj_verts:
             if vert.structure.owner == owner: # city or settlement owned by this player adjacent to road target
                 self.edges[position].structure = Structure(owner, Building.ROAD)
-                break
+                self.update_longest_road()
+                return
             
             adj_edges = [self.edges[i] for i in vert.edges if i != None]
             for edge in adj_edges:
                 if edge.structure == Structure(owner, Building.ROAD) and vert.structure.owner == Colour.NONE: # road owned by this person AND not interupted by settlement / city
                     self.edges[position].structure = Structure(owner, Building.ROAD)
-                    break
+                    self.update_longest_road()
+                    return
                 
-        else:
-            raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
+        raise BuildingError("Cannot build a road not connected to one of your other roads, settlements or cities")
         
-        self.update_longest_road()
+        
     
     def delete_settlement(self, position: int):
         """removes settlement
@@ -819,7 +822,7 @@ class Board:
         
         for player in Colour:
             if player != Colour.NONE:
-                length = len(self.get_longest_road(player))
+                length = len(self.get_longest_road(player)) - 1
                 if length > max_length:
                     max_length = length
                     best_player = player

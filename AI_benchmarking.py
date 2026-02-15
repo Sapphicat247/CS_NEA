@@ -129,7 +129,7 @@ def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
             pass
     
     # sucess
-    player.used_dev_card = True    
+    player.used_dev_card = True
     player.development_cards[card] -= 1
 
 def bank_trade(giving: dict[catan.Resource, int], recieving: dict[catan.Resource, int], player: AI):
