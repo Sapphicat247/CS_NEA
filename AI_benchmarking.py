@@ -6,9 +6,8 @@ import dearpygui.dearpygui as dpg
 import random, time
 
 # Change these to test software
-HAS_HUMAN = False # include player?
-HEADLESS = True # draw GUI?
-
+HAS_HUMAN = True # include player?
+HEADLESS = False # draw GUI?
 
 # MARK: start
 
