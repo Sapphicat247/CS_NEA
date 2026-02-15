@@ -9,6 +9,7 @@ from copy import deepcopy
 # GUI
 import dearpygui.dearpygui as dpg
 
+# change this to see debug print mesages, and more info in the GUI
 DEBUG = False
 
 class BuildingError(Exception):

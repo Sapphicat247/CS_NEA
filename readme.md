@@ -8,6 +8,8 @@ This is an AI to play the boardgame Catan, it consists of 3 main files, each ser
 
 you will need to install python 3.13 or above and the dearpygui library, this can be installed with `pip install dearpygui`. Then just run `AI_benchmarking.py`.
 
+To run a game of only AIs, or without a GUI, change the boolean constants at the top of the file. There is also a constant at the top of the `src/catan.py` file that shows debug info in the terminal and on the GUI.
+
 ## Useful Sites
 
 - [Catan wiki](https://en.wikipedia.org/wiki/Catan)

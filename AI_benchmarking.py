@@ -3,10 +3,12 @@ from src.ai import AI, AI_Random as OLD_AI, AI_V1 as CURRENT_AI
 from src.player import Player
 
 import dearpygui.dearpygui as dpg
-import random
+import random, time
 
-HAS_HUMAN = True
-HEADLESS = False
+# Change these to test software
+HAS_HUMAN = False # include player?
+HEADLESS = True # draw GUI?
+
 
 # MARK: start
 
@@ -70,8 +72,7 @@ def move_robber_and_steal(pos, mover: AI, steal_from: AI | None):
     # valid steal config
     if sum(steal_from.resources.values()) > 0: # only try to steal if they have >1 card
         card = random.choices(list(steal_from.resources.keys()), list(steal_from.resources.values()))[0]
-        #print(f"\t{mover.ansi_colour}{mover.colour}{colours.END} stole {card} from {steal_from.ansi_colour}{steal_from.colour}{colours.END}")
-        
+
         steal_from.resources[card] -= 1
         mover.resources[card] += 1
     
@@ -102,7 +103,7 @@ def use_dev_card(card: catan.DevelopmentCard, args: catan.EventArg, player: AI):
                 else:
                     # no players with a larger or equal army size
                     board.largest_army = player.colour
-                    print(f"{player.colour.name.lower()} got the largest army card")
+                    if catan.DEBUG: print(f"\t{player.colour.name.lower()} got the largest army card")
                     if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{player.colour.name.lower()} got the largest army card")
                 
         
@@ -158,6 +159,7 @@ def bank_trade(giving: dict[catan.Resource, int], recieving: dict[catan.Resource
 
 
 # MARK: start
+start_time = time.time()
 
 if not HEADLESS:
     # create dpg widow
@@ -218,7 +220,6 @@ for player_i, settlement_num in ((0, "first"), (1, "first"), (2, "first"), (3, "
             board.place_road(catan.Colour(player_i+1), hand=None, position=road_pos)
             
         except catan.BuildingError as e:
-            print(e)
             if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + str(e))
             board.delete_settlement(settlement_pos)
         else:
@@ -244,7 +245,7 @@ while HEADLESS or dpg.is_dearpygui_running():
     
     ready_for_turn = False
     current_AI = AI_list[current_turn]
-    print(f"its {current_AI.colour.name.capitalize()}'s turn")
+    if catan.DEBUG: print(f"its {current_AI.colour.name.capitalize()}'s turn")
     if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"its {current_AI.colour.name.capitalize()}'s turn")
     
     # give the ai it's dev_cards which are on cooldown & reset if they've played one already this turn
@@ -266,15 +267,14 @@ while HEADLESS or dpg.is_dearpygui_running():
             raise ValueError(f"you cant't {action.event} before you roll the dice")
 
     dice = random.randint(1, 6) + random.randint(1, 6)
-    print(f"{"An" if dice == 8 or dice == 11 else "A"} {dice} was rolled")
+    if catan.DEBUG: print(f"\t{"An" if dice == 8 or dice == 11 else "A"} {dice} was rolled")
     if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{"An" if dice == 8 or dice == 11 else "A"} {dice} was rolled")
     
     if dice == 7:
-        print("7 rolled")
         # hand limit of 7
         for ai in AI_list:
             if sum(ai.resources.values()) > 7:
-                print(f"{ai.colour.name} has too many cards")
+                if catan.DEBUG: print(f"\t\t{ai.colour.name} has too many cards")
                 if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{ai.colour.name} has too many cards")
                 
                 discarded = ai.discard_half(copy_of_board())
@@ -299,7 +299,6 @@ while HEADLESS or dpg.is_dearpygui_running():
         
     else:
         resources = board.get_resources(dice)
-        #if DEBUG: print(resources)
         for ai in AI_list:
             for resource in resources[ai.colour].keys():
                 ai.resources[resource] += resources[ai.colour][resource]
@@ -310,10 +309,7 @@ while HEADLESS or dpg.is_dearpygui_running():
         break
     
     while 1:
-        #if DEBUG: print("\tdoing action")
         action = current_AI.do_action(copy_of_board())
-        
-        #print(f"\t{action.event.name}: {action.arg}")
         
         # try to do action
         try:
@@ -350,8 +346,6 @@ while HEADLESS or dpg.is_dearpygui_running():
                     
                     update()
                     
-                    print(f"{current_AI.colour.name}'s longest road is {board.get_longest_road(current_AI.colour)} tiles long")
-                    
                 case [catan.Event.BUY_DEV_CARD, None]:
                     if not catan.can_afford(current_AI.resources, catan.Building.DEVELOPMENT_CARD):
                         raise ValueError("you can't afford a developmeant card")
@@ -369,7 +363,7 @@ while HEADLESS or dpg.is_dearpygui_running():
                         else:
                             current_AI.development_cards_on_cooldown[card] += 1
                     except IndexError:
-                        print("no development cards left")
+                        if catan.DEBUG: print("\nError: no development cards left")
                         if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "no development cards left")
                 
                 case [catan.Event.TRADE, [giving, recieving, preferances]]:
@@ -390,7 +384,7 @@ while HEADLESS or dpg.is_dearpygui_running():
                                 if not catan.can_afford(other_ai.resources, recieving):
                                     raise ValueError(f"{other_ai.colour.name.capitalize()} cant afford that trade")
                                 
-                                print(f"{current_AI.colour.name.capitalize()} traded with {other_ai.colour.name.capitalize()}")
+                                if catan.DEBUG: print(f"\t{current_AI.colour.name.capitalize()} traded with {other_ai.colour.name.capitalize()}")
                                 if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{current_AI.colour.name.capitalize()} traded with {other_ai.colour.name.capitalize()}")
                                 
                                 # they can afford it
@@ -416,7 +410,7 @@ while HEADLESS or dpg.is_dearpygui_running():
                 
         except Exception as e:
             if current_AI.is_human:
-                print(e)
+                if catan.DEBUG: print(f"\tError: {e}")
                 if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + str(e))
             else:
                 raise e
@@ -440,17 +434,21 @@ while HEADLESS or dpg.is_dearpygui_running():
     if update():
         break
 
-# MARK: print winner
+# MARK: End
 
 for ai in AI_list:
     if get_real_vps(ai) >= 10:
-        print(f"{ai.colour.name} WON!")
+        if catan.DEBUG:
+            print(f"{ai.colour.name} {"(K) " if board.largest_army == ai else ""}{("(R) " if board.longest_road == ai else "")}WON!")
+        else:
+            print(f"{ai.colour.name} WON!")
+            
         if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{ai.colour.name} WON!")
         if board.largest_army == ai.colour:
-            print("they had the largest army")
+            if catan.DEBUG: print("they had the largest army")
             if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "they had the largest army")
         if board.longest_road == ai.colour:
-            print("they had the longest road")
+            if catan.DEBUG: print("they had the longest road")
             if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "they had the longest road")
 
 if not HEADLESS:
@@ -458,3 +456,9 @@ if not HEADLESS:
         dpg.render_dearpygui_frame()
 
     dpg.destroy_context()
+
+runtime = time.time() - start_time
+
+print("execution took %s seconds" % (runtime))
+with open("stats.txt", "a") as f:
+    f.write(f"%s\n" % (runtime))
