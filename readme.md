@@ -1,4 +1,4 @@
-# Computer Science NEA
+# Computer Science NEA: Catan AI
 
 ## Project Idea & Overview
 
@@ -6,7 +6,7 @@ This is an AI to play the boardgame Catan, it consists of 3 main files, each ser
 
 ## Running
 
-you will need to install python 3.13 or above and dearpygui, this can be installed after python by running `py -m pip install dearpygui`
+you will need to install python 3.13 or above and the dearpygui library, this can be installed with `pip install dearpygui`. Then just run `AI_benchmarking.py`.
 
 ## Useful Sites
 
@@ -19,8 +19,7 @@ you will need to install python 3.13 or above and dearpygui, this can be install
 
 ### AI_benchmarking.py
 
-- lets 4 AIs play against each other, this allows you to test improvments to their algorithms and could be used to implement re-enforcement learning
-- these AIs can be users or bots, as they are both just superclasses.
+- lets 4 AIs play against each other, or a player to play against 3 AIs
 
 ### src
 
