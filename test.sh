@@ -1,10 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# use gnu parallel
+# remember to change settings in AI_benchmarking
 
-for i in {1..200}; do
+test_f () {
     result=$(python3 ./AI_benchmarking.py)
-    echo $result
-    echo $result | grep -oE "[0-9]+\.[0-9]+" >> timing.txt
-    echo $result | grep -oE "RED|ORANGE|BLUE|WHITE|NONE" >> winners.txt
-done
+    echo "$1: $result"
+    echo $result | grep -oE "[0-9]+\.[0-9]+" >> "timing.txt"
+    echo $result | grep -oE "RED|ORANGE|BLUE|WHITE|NONE" >> "winners.txt"
+}
+
+export -f test_f
+
+parallel test_f ::: {1..5000}

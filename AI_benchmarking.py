@@ -6,8 +6,8 @@ import dearpygui.dearpygui as dpg
 import random, time
 
 # Change these to test software
-HAS_HUMAN = True # include player?
-HEADLESS = False # draw GUI?
+HAS_HUMAN = False # include player?
+HEADLESS = True # draw GUI?
 
 # MARK: start
 
@@ -260,16 +260,27 @@ def run_game(print_output: bool = True):
             current_AI.development_cards_on_cooldown[development_card] = 0
         
         # check if they wish to play a dev card before rolling dice
-        action = current_AI.roll_dice(copy_of_board())
-        match action.event:
-            case catan.Event.DICE_ROLL:
-                pass
-            case catan.Event.USE_KNIGHT | catan.Event.USE_MONOPOLY | catan.Event.USE_ROAD_BUILDING | catan.Event.USE_YEAR_OF_PLENTY:
-                card = catan.DevelopmentCard[action.event.name.removeprefix("USE_")]
-                use_dev_card(card, action.arg, current_AI)
-                
-            case _:
-                raise ValueError(f"you cant't {action.event} before you roll the dice")
+        while 1:
+            action = current_AI.roll_dice(copy_of_board())
+            try:
+                match action.event:
+                    case catan.Event.DICE_ROLL:
+                        pass
+                    case catan.Event.USE_KNIGHT | catan.Event.USE_MONOPOLY | catan.Event.USE_ROAD_BUILDING | catan.Event.USE_YEAR_OF_PLENTY:
+                        card = catan.DevelopmentCard[action.event.name.removeprefix("USE_")]
+                        use_dev_card(card, action.arg, current_AI)
+                        
+                    case _:
+                        raise ValueError(f"you cant't {action.event} before you roll the dice")
+                    
+            except Exception as e:
+                if current_AI.is_human:
+                    if HAS_HUMAN: dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + f"{e}")
+                else:
+                    raise e
+            
+            else:
+                break
 
         dice = random.randint(1, 6) + random.randint(1, 6)
         if catan.DEBUG: print(f"\t{"An" if dice == 8 or dice == 11 else "A"} {dice} was rolled")
