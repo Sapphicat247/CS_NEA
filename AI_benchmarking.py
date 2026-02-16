@@ -5,9 +5,16 @@ from src.player import Player
 import dearpygui.dearpygui as dpg
 import random, time, sys
 
+FLAGS = "-h", "--help", "-d", "--debug", "--onlyAIs", "--noGUI"
+
+# check for -h
 if "-h" in sys.argv or "--help" in sys.argv:
     print("[-h, --help] [-d, --debug] [--onlyAIs] [--noGUI]")
     sys.exit(0)
+
+if any((flag := i) not in FLAGS for i in sys.argv[1:]):
+    print(f"unrecognised flag: {flag}\n use -h or --help for help")
+    sys.exit(-1)
 
 # Change these to test software
 HAS_HUMAN = "--onlyAIs" not in sys.argv # include player?
