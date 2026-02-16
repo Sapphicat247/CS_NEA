@@ -9,8 +9,11 @@ from copy import deepcopy
 # GUI
 import dearpygui.dearpygui as dpg
 
+# command line args
+import sys
+
 # change this to see debug print mesages, and more info in the GUI
-DEBUG = False
+DEBUG = "--debug" in sys.argv or "-d" in sys.argv
 
 class BuildingError(Exception):
     """error used for when an AI tries to place a building in an invalid location"""

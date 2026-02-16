@@ -3,11 +3,15 @@ from src.ai import AI, AI_V1
 from src.player import Player
 
 import dearpygui.dearpygui as dpg
-import random, time
+import random, time, sys
+
+if "-h" in sys.argv or "--help" in sys.argv:
+    print("[-h, --help] [-d, --debug] [--onlyAIs] [--noGUI]")
+    sys.exit(0)
 
 # Change these to test software
-HAS_HUMAN = True # include player?
-HEADLESS = False # draw GUI?
+HAS_HUMAN = "--onlyAIs" not in sys.argv # include player?
+HEADLESS = "--noGUI" in sys.argv # draw GUI?
 
 # MARK: start
 
