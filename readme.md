@@ -1,44 +1,29 @@
-# Computer Science NEA
+# Computer Science NEA: Catan AI
 
-## Project Idea & overview
+## Project Idea & Overview
 
 This is an AI to play the boardgame Catan, it consists of 3 main files, each serving a different purpose.
 
-I will uer R to analyse the results to work out if changes improve the disign of the AI, or not.
+## Running
 
-## Languages & Libraries Used
+you will need to install python 3.13 or above and the dearpygui library, this can be installed with `pip install dearpygui`. Then just run `AI_benchmarking.py`.
 
-- Python
-  - dearpygui
-  - enum
-  - dataclass
-  - random
-- R
+To run a game of only AIs, or without a GUI, change the boolean constants at the top of the file. There is also a constant at the top of the `src/catan.py` file that shows debug info in the terminal and on the GUI.
 
 ## Useful Sites
 
 - [Catan wiki](https://en.wikipedia.org/wiki/Catan)
+- [Catan rules](https://www.catan.com/sites/default/files/2021-06/catan_base_rules_2020_200707.pdf)
 - [Gui library github](https://github.com/hoffstadt/DearPyGui)
 - [Gui library documentation](https://dearpygui.readthedocs.io/en/latest/)
 
 ## Documentation
 
-### against_AI.py
-
-- let 1 user play against 2 - 3 AIs. This will have a GUI that emulates a game board and hand of cards etc
-
 ### AI_benchmarking.py
 
-- makes 3 or 4 AIs play against each other, this allows you to test improvments to their algorithms and could be used to implement re-enforcement learning
-
-progress:
-- all actions that can be done on a turn are implemented, except playing development cards and trading.
-- set-up phase complete
-
-### over_the_table.py
-
-- allows you to play an irl game using a bot as a player. this will have a GUI to imput what each player does, and to update the state of the board
+- lets 4 AIs play against each other, or a player to play against 3 AIs
 
 ### src
 
-- folder to hold scripts
+- folder to hold backend scripts
+- to write a custom AI, create a subclass in ai.py
