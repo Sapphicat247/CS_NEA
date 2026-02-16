@@ -12,7 +12,7 @@ Go to the Releases page and download the latest binary.
 
 you will need to install python 3.13 or above and the dearpygui library, this can be installed with `pip install dearpygui`. Then just run `AI_benchmarking.py`.
 
-To run a game of only AIs, or without a GUI, pass in commandline arguments of `--onlyAIs` or `--noGUI`. You can also pass in `-d` or `--debug` for extra debug info in the GUI and printing to the commandline. use `-h` or `--help` for help
+To run a game of only AIs, or without a GUI, pass in commandline arguments of `--onlyAIs` or `--noGUI`. You can also pass in `-d` or `--debug` for extra debug info in the GUI and printing to the commandline. Use `-h` or `--help` for help.
 
 ## Building
 
