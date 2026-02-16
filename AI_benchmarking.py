@@ -1,13 +1,13 @@
 from src import catan
-from src.ai import AI, AI_Random as OLD_AI, AI_V1 as CURRENT_AI
+from src.ai import AI, AI_V1
 from src.player import Player
 
 import dearpygui.dearpygui as dpg
 import random, time
 
 # Change these to test software
-HAS_HUMAN = False # include player?
-HEADLESS = True # draw GUI?
+HAS_HUMAN = True # include player?
+HEADLESS = False # draw GUI?
 
 # MARK: start
 
@@ -168,12 +168,12 @@ def run_game(print_output: bool = True):
         dpg.create_context()
 
         # init viewport
-        dpg.create_viewport(title='Catan', width=1920, height=1080)
+        dpg.create_viewport(title='Catan', width=2560, height=1440)
         dpg.setup_dearpygui()
         dpg.show_viewport()
         
         dpg.set_global_font_scale(2)
-        dpg.toggle_viewport_fullscreen()
+        #dpg.toggle_viewport_fullscreen()
         
     # create a board
     global board
@@ -183,10 +183,10 @@ def run_game(print_output: bool = True):
 
     global AI_list
     AI_list = [
-        Player(catan.Colour.RED, 0) if HAS_HUMAN else CURRENT_AI(catan.Colour.RED, 0),
-        CURRENT_AI(catan.Colour.ORANGE, 1, draw_gui = not HAS_HUMAN),
-        CURRENT_AI(catan.Colour.BLUE, 2, draw_gui = not HAS_HUMAN),
-        CURRENT_AI(catan.Colour.WHITE, 3, draw_gui = not HAS_HUMAN),
+        Player(catan.Colour.RED, 0) if HAS_HUMAN else AI_V1(catan.Colour.RED, 0),
+        AI_V1(catan.Colour.ORANGE, 1, draw_gui = not HAS_HUMAN),
+        AI_V1(catan.Colour.BLUE, 2, draw_gui = not HAS_HUMAN),
+        AI_V1(catan.Colour.WHITE, 3, draw_gui = not HAS_HUMAN),
     ]
 
     ready_for_turn = True

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# remember to change settings in AI_benchmarking
-
 test_f () {
     result=$(python3 ./AI_benchmarking.py)
     echo "$1: $result"

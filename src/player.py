@@ -115,13 +115,13 @@ class Player(AI):
         with dpg.window(width=main_width, height=600, pos=(0,main_height), no_close=True):
             dpg.add_text(tag="text output box", tracked=True, wrap=main_width, track_offset=1)
         
-        with dpg.window(width=150, height=100, show=False, tag="player selector", label="select a player", no_close=True, pos=(main_width,0)):
-            dpg.add_button(label="Red", show=False, callback=self.__colour_selected, user_data=catan.Colour.RED, tag="red button")
-            dpg.add_button(label="Orange", show=False, callback=self.__colour_selected, user_data=catan.Colour.ORANGE, tag="orange button")
-            dpg.add_button(label="Blue", show=False, callback=self.__colour_selected, user_data=catan.Colour.BLUE, tag="blue button")
-            dpg.add_button(label="White", show=False, callback=self.__colour_selected, user_data=catan.Colour.WHITE, tag="white button")
+        with dpg.window(width=150, height=100, show=True, tag="player selector", label="select a player", no_close=True, pos=(main_width,0)):
+            dpg.add_button(label="Red", show=True, callback=self.__colour_selected, user_data=catan.Colour.RED, tag="red button")
+            dpg.add_button(label="Orange", show=True, callback=self.__colour_selected, user_data=catan.Colour.ORANGE, tag="orange button")
+            dpg.add_button(label="Blue", show=True, callback=self.__colour_selected, user_data=catan.Colour.BLUE, tag="blue button")
+            dpg.add_button(label="White", show=True, callback=self.__colour_selected, user_data=catan.Colour.WHITE, tag="white button")
         
-        with dpg.window(width=250, height=200, show=False, tag="card selector", label="select some cards", no_close=True, pos=(main_width, 0)):
+        with dpg.window(width=250, height=200, show=True, tag="card selector", label="select some cards", no_close=True, pos=(main_width, 0)):
             for i in catan.Resources():
                 dpg.add_input_int(label=i.name.lower(), show=True, min_clamped=True, max_clamped=True, min_value=0, user_data=i, callback=self.__resource_changed, tag = f"{i.name.lower()} input")
             
@@ -129,12 +129,12 @@ class Player(AI):
             
             dpg.add_button(tag="card selector button", callback=self.__resource_selection_button_clicked, label="confirm")
         
-        with dpg.window(width=250, height=200, show=False, tag="monopoly selector", label="select a resoruce type", no_close=True, pos=(main_width, 0)):
+        with dpg.window(width=250, height=200, show=True, tag="monopoly selector", label="select a resoruce type", no_close=True, pos=(main_width, 0)):
             
             for i in catan.Resources():
                 dpg.add_button(label=i.name.lower(), show=True, user_data=i, callback=self.__monopoly_button_pressed)
         
-        with dpg.window(width=250, height=200, show=False, tag="yop selector", label="select a resoruce type", no_close=True, pos=(main_width, 0)):
+        with dpg.window(width=250, height=200, show=True, tag="yop selector", label="select a resoruce type", no_close=True, pos=(main_width, 0)):
             
             for i in catan.Resources():
                 with dpg.group(horizontal=True):
@@ -204,10 +204,6 @@ class Player(AI):
         
         dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "It's the start of your turn, you may play a development card before rolling the dice")
         
-        # TODO remove testing ##############################
-        self.resources = {i: 100 for i in catan.Resources()}
-        # TODO remove testing ##############################
-        
         if sum(v for k, v in self.development_cards.items() if k != catan.DevelopmentCard.VICTORY_POINT) > 0:
             # has a development card
             ...
@@ -273,7 +269,7 @@ class Player(AI):
                 # return catan.Action(catan.Event.TRADE, (offer, recieve, [catan.Colour.NONE]))
             
             case _:
-                print("idk...")
+                if catan.DEBUG: print("idk...")
         
         
         return catan.Action(self.__last_pressed_event, None)
@@ -291,7 +287,7 @@ class Player(AI):
     
     def __get_vertex(self) -> int:
         self.__last_click_pos = None
-        print("waiting for vertex click...")
+        if catan.DEBUG: print("waiting for vertex click...")
         while self.__last_click_pos == None:
             self.__update_screen()
         
@@ -321,7 +317,7 @@ class Player(AI):
     
     def __get_edge(self) -> int:
         self.__last_click_pos = None
-        print("waiting for edge click...")
+        if catan.DEBUG: print("waiting for edge click...")
         while self.__last_click_pos == None:
             self.__update_screen()
         
@@ -351,7 +347,7 @@ class Player(AI):
     
     def __get_hex(self) -> int:
         self.__last_click_pos = None
-        print("waiting for hex click...")
+        if catan.DEBUG: print("waiting for hex click...")
         while self.__last_click_pos == None:
             self.__update_screen()
         
@@ -429,7 +425,7 @@ class Player(AI):
                 # selected enough
                 dpg.set_value("text output box", str(dpg.get_value("text output box")) + "\n" + "you have selected enough cards")
             else:
-                print("not enough")
+                if catan.DEBUG: print("not enough")
         
             # update maximums
             missing = to_remove - num_selected
