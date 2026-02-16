@@ -1,5 +1,14 @@
+# python
 __pycache__/
+
+# vs code
 .vscode
+
+#testing
 test*.py
 *.txt
+
+# pyinstaller / building
 build/
+dist/
+*.spec
