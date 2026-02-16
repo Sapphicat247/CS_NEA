@@ -159,7 +159,7 @@ def bank_trade(giving: dict[catan.Resource, int], recieving: dict[catan.Resource
 board: catan.Board
 AI_list: list[AI]
 
-def run_game(print_output: bool = True):
+def main(print_output: bool = True):
     # MARK: start
     start_time = time.time()
 
@@ -481,4 +481,4 @@ def run_game(print_output: bool = True):
     return winner, runtime
 
 if __name__ == "__main__":
-    run_game(print_output = True)
+    main(print_output = True)
