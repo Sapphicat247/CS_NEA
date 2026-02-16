@@ -738,7 +738,7 @@ class Board:
         for _ in range(max_depth):
             to_add = {}
             for vert_i, d in distances.items():
-                vert = board.verts[vert_i]
+                vert = self.verts[vert_i]
                 
                 for edge_i in vert.edges:
                     if edge_i is not None:
@@ -756,7 +756,7 @@ class Board:
         path = [end]
         vert_i = end
         while path[0] != start:
-            vert = board.verts[path[0]]
+            vert = self.verts[path[0]]
             
             
             for edge_i in vert.edges:
@@ -960,23 +960,26 @@ class Board:
 
 # MARK: testing
 if __name__ == "__main__":
-    def loop():
-        while 1:
-            v = int(input())
-            board.edges[v].structure = Structure(Colour.WHITE, Building.ROAD) if board.edges[v].structure.owner == Colour.NONE else Structure(Colour.NONE, Building.EMPTY)
-            
-    from threading import Thread
-    dpg.create_context()
+    def main():
+        def loop():
+            while 1:
+                v = int(input())
+                board.edges[v].structure = Structure(Colour.WHITE, Building.ROAD) if board.edges[v].structure.owner == Colour.NONE else Structure(Colour.NONE, Building.EMPTY)
+                
+        from threading import Thread
+        dpg.create_context()
 
-    # init viewport
-    dpg.create_viewport(title='Catan', width=1920, height=1080)
-    dpg.setup_dearpygui()
-    dpg.show_viewport()
+        # init viewport
+        dpg.create_viewport(title='Catan', width=1920, height=1080)
+        dpg.setup_dearpygui()
+        dpg.show_viewport()
+        
+        board = Board()
+        
+        Thread(target=loop).start()
+        
+        while 1:
+            board.draw()
+            dpg.render_dearpygui_frame()
     
-    board = Board()
-    
-    Thread(target=loop).start()
-    
-    while 1:
-        board.draw()
-        dpg.render_dearpygui_frame()
+    main()
